@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36908.2 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErgStream", "ErgStream\ErgStream.csproj", "{ADBD1CDD-97A3-426B-A003-08C921E3F031}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErgComm", "ErgComm\ErgComm.csproj", "{15C3CDA5-87E4-4E6E-92B5-133396C05F25}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ADBD1CDD-97A3-426B-A003-08C921E3F031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ADBD1CDD-97A3-426B-A003-08C921E3F031}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ADBD1CDD-97A3-426B-A003-08C921E3F031}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{ADBD1CDD-97A3-426B-A003-08C921E3F031}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ADBD1CDD-97A3-426B-A003-08C921E3F031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15C3CDA5-87E4-4E6E-92B5-133396C05F25}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15C3CDA5-87E4-4E6E-92B5-133396C05F25}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15C3CDA5-87E4-4E6E-92B5-133396C05F25}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15C3CDA5-87E4-4E6E-92B5-133396C05F25}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ABC59B98-1810-4CCB-95D1-20204DF333E3}
+	EndGlobalSection
+EndGlobal
