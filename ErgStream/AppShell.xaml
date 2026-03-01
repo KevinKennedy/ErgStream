@@ -9,22 +9,16 @@
     Title="ErgStream">
 
     <ShellContent
-        Title="Dashboard"
-        Icon="{StaticResource IconDashboard}"
+        Title="Erg Connection"
+        Icon="{StaticResource IconAdd }"
         ContentTemplate="{DataTemplate pages:MainPage}"
         Route="main" />
-
+    
     <ShellContent
-        Title="Projects"
+        Title="Erg Data Stream"
         Icon="{StaticResource IconProjects}"
-        ContentTemplate="{DataTemplate pages:ProjectListPage}"
-        Route="projects" />
-
-    <ShellContent
-        Title="Manage Meta"
-        Icon="{StaticResource IconMeta}"
-        ContentTemplate="{DataTemplate pages:ManageMetaPage}"
-        Route="manage" />
+        ContentTemplate="{DataTemplate pages:ErgDataStreamPage}"
+        Route="datastream" />
 
     <Shell.FlyoutFooter>
         <Grid Padding="15">

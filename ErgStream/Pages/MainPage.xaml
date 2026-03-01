@@ -1,89 +1,87 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:pageModels="clr-namespace:ErgStream.PageModels"             
-             xmlns:models="clr-namespace:ErgStream.Models"
-             xmlns:controls="clr-namespace:ErgStream.Pages.Controls"
-             xmlns:pullToRefresh="clr-namespace:Syncfusion.Maui.Toolkit.PullToRefresh;assembly=Syncfusion.Maui.Toolkit"
-             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="ErgStream.Pages.MainPage"
-             x:DataType="pageModels:MainPageModel"
-             x:Name="OverviewPage"
-             Title="{Binding Today}">
-
-    <ContentPage.Behaviors>
-        <toolkit:EventToCommandBehavior
-                BindingContext="{Binding Path=BindingContext, Source={x:Reference OverviewPage}, x:DataType=ContentPage}"
-                EventName="NavigatedTo"
-                Command="{Binding NavigatedToCommand}" />
-        <toolkit:EventToCommandBehavior
-                BindingContext="{Binding Path=BindingContext, Source={x:Reference OverviewPage}, x:DataType=ContentPage}"
-                EventName="NavigatedFrom"
-                Command="{Binding NavigatedFromCommand}" />
-        <toolkit:EventToCommandBehavior
-                BindingContext="{Binding Path=BindingContext, Source={x:Reference OverviewPage}, x:DataType=ContentPage}"
-                EventName="Appearing"                
-                Command="{Binding AppearingCommand}" />
-    </ContentPage.Behaviors>
-
-    <ContentPage.Resources>
-        <ResourceDictionary>
-            <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
-        </ResourceDictionary>
-    </ContentPage.Resources>
-
-    <Grid>
-        <pullToRefresh:SfPullToRefresh
-            IsRefreshing="{Binding IsRefreshing}"
-            RefreshCommand="{Binding RefreshCommand}">
-            <pullToRefresh:SfPullToRefresh.PullableContent>
-                <ScrollView>
-                    <VerticalStackLayout Spacing="{StaticResource LayoutSpacing}" Padding="{StaticResource LayoutPadding}">
-                        <controls:CategoryChart />
-                        <Label Text="Projects" Style="{StaticResource Title2}"/>
-                        <ScrollView Orientation="Horizontal" Margin="-30,0">
-                            <HorizontalStackLayout 
-                                Spacing="15" Padding="30,0"
-                                BindableLayout.ItemsSource="{Binding Projects}">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate x:DataType="models:Project">
-                                        <controls:ProjectCardView WidthRequest="200">
-                                            <controls:ProjectCardView.GestureRecognizers>
-                                                <TapGestureRecognizer Command="{Binding NavigateToProjectCommand, Source={RelativeSource AncestorType={x:Type pageModels:MainPageModel}}, x:DataType=pageModels:MainPageModel}" CommandParameter="{Binding .}"/>
-                                            </controls:ProjectCardView.GestureRecognizers>
-                                        </controls:ProjectCardView>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </HorizontalStackLayout>
-                        </ScrollView>
-                        <Grid HeightRequest="44">
-                            <Label Text="Tasks" Style="{StaticResource Title2}" VerticalOptions="Center"/>
-                            <ImageButton 
-                                Source="{StaticResource IconClean}"
-                                HorizontalOptions="End"
-                                VerticalOptions="Center"
-                                Aspect="Center"
-                                HeightRequest="44"
-                                WidthRequest="44"
-                                IsVisible="{Binding HasCompletedTasks}"
-                                Command="{Binding CleanTasksCommand}"
-                                SemanticProperties.Description="Clean tasks" />
+             xmlns:models="clr-namespace:ErgComm.Models;assembly=ErgComm"
+             Title="Erg Connection">
+    
+    <Grid Padding="10">
+        <CollectionView ItemsSource="{Binding Items}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnItemSelected">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ErgInfo">
+                    <Border Padding="10"
+                            Margin="5"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}"
+                            StrokeThickness="0">
+                        <Border.StrokeShape>
+                            <RoundRectangle CornerRadius="8"/>
+                        </Border.StrokeShape>
+                        
+                        <Grid ColumnDefinitions="Auto,*,Auto"
+                              ColumnSpacing="10">
+                            
+                            <!-- Icon -->
+                            <Frame Grid.Column="0"
+                                   WidthRequest="50"
+                                   HeightRequest="50"
+                                   CornerRadius="25"
+                                   Padding="0"
+                                   HasShadow="False"
+                                   BackgroundColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}">
+                                <Label Text="🚣"
+                                       FontSize="24"
+                                       HorizontalOptions="Center"
+                                       VerticalOptions="Center"/>
+                            </Frame>
+                            
+                            <!-- Text Content -->
+                            <VerticalStackLayout Grid.Column="1"
+                                                 VerticalOptions="Center"
+                                                 Spacing="4">
+                                <Label Text="{Binding Name}"
+                                       FontSize="18"
+                                       FontAttributes="Bold"/>
+                                <Label Text="{Binding ErgType, StringFormat='Type: {0}'}"
+                                       FontSize="14"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"/>
+                            </VerticalStackLayout>
+                            
+                            <!-- Signal Strength -->
+                            <VerticalStackLayout Grid.Column="2"
+                                                 VerticalOptions="Center"
+                                                 Spacing="2">
+                                <Label Text="📶"
+                                       FontSize="20"
+                                       HorizontalOptions="Center"/>
+                                <Label Text="{Binding SignalStrength, StringFormat='{0} dBm'}"
+                                       FontSize="12"
+                                       HorizontalOptions="Center"
+                                       TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"/>
+                            </VerticalStackLayout>
                         </Grid>
-                        <VerticalStackLayout Spacing="15"
-                            BindableLayout.ItemsSource="{Binding Tasks}">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <controls:TaskView TaskCompletedCommand="{Binding TaskCompletedCommand, Source={RelativeSource AncestorType={x:Type pageModels:MainPageModel}}, x:DataType=pageModels:MainPageModel}" />
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </ScrollView>
-            </pullToRefresh:SfPullToRefresh.PullableContent>
-        </pullToRefresh:SfPullToRefresh>
-
-        <controls:AddButton 
-            IsEnabled="{Binding IsBusy, Converter={StaticResource InvertedBoolConverter}}"
-            Command="{Binding AddTaskCommand}" />
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+            
+            <CollectionView.EmptyView>
+                <VerticalStackLayout HorizontalOptions="Center"
+                                     VerticalOptions="Center"
+                                     Spacing="10">
+                    <ActivityIndicator IsRunning="True"
+                                      Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                                      WidthRequest="40"
+                                      HeightRequest="40"/>
+                    <Label Text="Searching for ergometers..."
+                           FontSize="20"
+                           HorizontalOptions="Center"/>
+                    <Label Text="Make sure your device is powered on and in range"
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Light={StaticResource Gray600}, Dark={StaticResource Gray400}}"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+        </CollectionView>
     </Grid>
 </ContentPage>

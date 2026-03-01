@@ -1,3 +1,5 @@
+using ErgStream.Utilities;
+
 namespace ErgStream.Services
 {
     /// <summary>
