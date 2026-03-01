@@ -172,7 +172,8 @@ namespace ErgComm.Drivers
                 {
                     generalStatusChar.ValueUpdated += (s, e) =>
                     {
-                        var data = ParseGeneralStatus(e.Characteristic.Value);
+                        LogBleData("GeneralStatus", e.Characteristic.Value);
+                        var data = Concept2DataParsing.ParseGeneralStatus(e.Characteristic.Value);
                         lock (_dataLock)
                         {
                             UpdateErgData(_currentData, data);
@@ -187,7 +188,8 @@ namespace ErgComm.Drivers
                 {
                     additionalStatusChar.ValueUpdated += (s, e) =>
                     {
-                        var data = ParseAdditionalStatus(e.Characteristic.Value);
+                        LogBleData("AdditionalStatus", e.Characteristic.Value);
+                        var data = Concept2DataParsing.ParseAdditionalStatus(e.Characteristic.Value);
                         lock (_dataLock)
                         {
                             UpdateErgData(_currentData, data);
@@ -201,7 +203,8 @@ namespace ErgComm.Drivers
                 {
                     strokeDataChar.ValueUpdated += (s, e) =>
                     {
-                        var data = ParseStrokeData(e.Characteristic.Value);
+                        LogBleData("StrokeData", e.Characteristic.Value);
+                        var data = Concept2DataParsing.ParseStrokeData(e.Characteristic.Value);
                         lock (_dataLock)
                         {
                             UpdateErgData(_currentData, data);
@@ -217,7 +220,8 @@ namespace ErgComm.Drivers
                 {
                     additionalStrokeDataChar.ValueUpdated += (s, e) =>
                     {
-                        var data = ParseAdditionalStrokeData(e.Characteristic.Value);
+                        LogBleData("AdditionalStrokeData", e.Characteristic.Value);
+                        var data = Concept2DataParsing.ParseAdditionalStrokeData(e.Characteristic.Value);
                         lock (_dataLock)
                         {
                             UpdateErgData(_currentData, data);
@@ -231,7 +235,8 @@ namespace ErgComm.Drivers
                 {
                     forceCurveChar.ValueUpdated += (s, e) =>
                     {
-                        var powerCurve = ParseForceCurveData(e.Characteristic.Value);
+                        LogBleData("ForceCurveData", e.Characteristic.Value);
+                        var powerCurve = Concept2DataParsing.ParseForceCurveData(e.Characteristic.Value);
                         lock (_dataLock)
                         {
                             _currentData.PowerCurve = powerCurve;
@@ -261,92 +266,27 @@ namespace ErgComm.Drivers
             }
         }
 
-        // Parse Rowing General Status characteristic (0x0031)
-        private ErgData ParseGeneralStatus(byte[] data)
+        /// <summary>
+        /// Logs BLE characteristic data in hex format for debugging and analysis.
+        /// Format: CharacteristicName|Length|HexData
+        /// Example: GeneralStatus|19|0A00000064000000010D8F0F00B401
+        /// To parse back: Split by '|', take HexData, and use Convert.FromHexString() or equivalent.
+        /// </summary>
+        private static void LogBleData(string characteristicName, byte[] data)
         {
-            if (data == null || data.Length < 19)
-                return new ErgData();
-
-            return new ErgData
+            if (data == null || data.Length == 0)
             {
-                Timestamp = DateTime.Now,
-                ElapsedTime = BitConverter.ToUInt32(data, 0) / 100.0, // centiseconds to seconds
-                Distance = BitConverter.ToUInt32(data, 4) / 10.0, // decimeters to meters
-                WorkoutState = data[8],
-                StrokeState = data[12],
-                StrokeRate = data[13],
-                HeartRate = data[14] == 255 ? null : (int?)data[14],
-                Pace = BitConverter.ToUInt16(data, 15) / 10.0, // centiseconds per 500m
-                Power = BitConverter.ToUInt16(data, 17), // watts
-            };
-        }
-
-        // Parse Additional Status characteristic (0x0032)
-        private ErgData ParseAdditionalStatus(byte[] data)
-        {
-            if (data == null || data.Length < 7)
-                return new ErgData();
-
-            return new ErgData
-            {
-                ElapsedTime = BitConverter.ToUInt32(data, 0) / 100.0,
-                Calories = BitConverter.ToUInt16(data, 4),
-                WorkoutType = data[6]
-            };
-        }
-
-        // Parse Stroke Data characteristic (0x0035) - Stroke-End Events
-        private ErgData ParseStrokeData(byte[] data)
-        {
-            if (data == null || data.Length < 19)
-                return new ErgData();
-
-            return new ErgData
-            {
-                Timestamp = DateTime.Now,
-                ElapsedTime = BitConverter.ToUInt32(data, 0) / 100.0,
-                Distance = BitConverter.ToUInt32(data, 4) / 10.0,
-                Power = BitConverter.ToUInt16(data, 8),
-                StrokeRate = data[10],
-                Calories = BitConverter.ToUInt16(data, 11),
-                Pace = BitConverter.ToUInt16(data, 15) / 10.0,
-            };
-        }
-
-        // Parse Additional Stroke Data characteristic (0x0036)
-        private ErgData ParseAdditionalStrokeData(byte[] data)
-        {
-            if (data == null || data.Length < 17)
-                return new ErgData();
-
-            return new ErgData
-            {
-                ElapsedTime = BitConverter.ToUInt32(data, 0) / 100.0,
-                Power = BitConverter.ToUInt16(data, 4),
-                DragFactor = data[12]
-            };
-        }
-
-        // Parse Force Curve Data characteristic (0x0038)
-        private List<int> ParseForceCurveData(byte[] data)
-        {
-            if (data == null || data.Length < 4)
-                return new List<int>();
-
-            var powerCurve = new List<int>();
-            int dataPoints = BitConverter.ToUInt16(data, 0);
-            
-            for (int i = 0; i < dataPoints && (2 + i * 2) < data.Length; i++)
-            {
-                int force = BitConverter.ToUInt16(data, 2 + i * 2);
-                powerCurve.Add(force);
+                System.Diagnostics.Debug.WriteLine($"BLE|{characteristicName}|0|");
+                return;
             }
 
-            return powerCurve;
+            var hexString = Convert.ToHexString(data);
+            System.Diagnostics.Debug.WriteLine($"BLE|{characteristicName}|{data.Length}|{hexString}");
         }
 
+
         // Helper to merge partial data into current data
-        private void UpdateErgData(ErgData current, ErgData update)
+        private static void UpdateErgData(ErgData current, ErgData update)
         {
             if (update.Timestamp != default)
                 current.Timestamp = update.Timestamp;
@@ -375,7 +315,7 @@ namespace ErgComm.Drivers
         }
 
         // Helper to clone ErgData for thread-safe callbacks
-        private ErgData CloneErgData(ErgData source)
+        private static ErgData CloneErgData(ErgData source)
         {
             return new ErgData
             {

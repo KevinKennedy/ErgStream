@@ -145,11 +145,13 @@ namespace ErgStream.Pages
 
         private void WriteDataRow(ErgData data)
         {
+            // TODO: Use ErgData.ToCSV()
+
             // Format timestamp as ISO 8601
             string timestamp = data.Timestamp.ToString("yyyy-MM-dd HH:mm:ss.fff");
             
             // Format pace as mm:ss.t per 500m
-            string pace = FormatPace(data.Pace);
+            string pace = data.Pace.HasValue ? FormatPace(data.Pace.Value) : string.Empty;
             
             // Format optional values
             string heartRate = data.HeartRate?.ToString() ?? "";
