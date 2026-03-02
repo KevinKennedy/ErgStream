@@ -60,7 +60,7 @@ namespace ErgComm.Drivers
                 var powerCurve = GenerateMockPowerCurve(power);
 
                 // Simulate stroke state cycling
-                var strokeState = ((int)(elapsed * 2) % 5); // Cycle through states
+                var strokeState = ((StrokeState)((elapsed * 2) % 5)); // Cycle through states
 
                 var data = new ErgData
                 {
@@ -92,7 +92,7 @@ namespace ErgComm.Drivers
             return 500.0 / (2.8 * Math.Pow(watts, 1.0 / 3.0));
         }
 
-        private List<int> GenerateMockPowerCurve(double avgPower)
+        private int[] GenerateMockPowerCurve(double avgPower)
         {
             // Generate realistic power curve with ~16 data points
             var curve = new List<int>();
@@ -104,7 +104,7 @@ namespace ErgComm.Drivers
                 int force = (int)(avgPower * bellCurve * 2.5 + _random.Next(-10, 10));
                 curve.Add(Math.Max(0, force));
             }
-            return curve;
+            return curve.ToArray();
         }
     }
 }

@@ -17,19 +17,19 @@ namespace ErgCommTests
         [Fact]
         public void GeneralStatusParsing()
         {
-            DoGeneralStatusParsingTestCase("19|00000000000000010000000000000000008000", "<timeStamp>,0.00,0,,,,,,,,0,,0,0");
+            DoGeneralStatusParsingTestCase("19|00000000000000010000000000000000008000", "<timeStamp>,0.00,0,,,,,,,,0,WaitingForWheelToReachMinSpeedState,0,0");
 
             // workout type = 1
-            DoGeneralStatusParsingTestCase("19|00000000000001010000000000000000008000", "<timeStamp>,0.00,0,,,,,,,,0,,0,1");
+            DoGeneralStatusParsingTestCase("19|00000000000001010000000000000000008000", "<timeStamp>,0.00,0,,,,,,,,0,WaitingForWheelToReachMinSpeedState,0,1");
 
             // Distance 0.5 and elapsed time 0.21
-            DoGeneralStatusParsingTestCase("19|15000005000001010000020000000000008000", "<timeStamp>,0.21,0.5,,,,,,,,0,,0,1");
+            DoGeneralStatusParsingTestCase("19|15000005000001010000020000000000008000", "<timeStamp>,0.21,0.5,,,,,,,,0,DrivingState,0,1");
 
             // Distance 17.8, elapsed time 6.18, drag factor 108
-            DoGeneralStatusParsingTestCase("19|6A0200B200000101010102000000000000806C", "<timeStamp>,6.18,17.8,,,,,,,,108,,1,1");
+            DoGeneralStatusParsingTestCase("19|6A0200B200000101010102000000000000806C", "<timeStamp>,6.18,17.8,,,,,,,,108,DrivingState,1,1");
 
             // Distance 55.8, elapsed time 18.59, drag factor 108
-            DoGeneralStatusParsingTestCase("19|4307002E02000101010001000000000000806C", "<timeStamp>,18.59,55.8,,,,,,,,108,,1,1");
+            DoGeneralStatusParsingTestCase("19|4307002E02000101010001000000000000806C", "<timeStamp>,18.59,55.8,,,,,,,,108,WaitingForWheelToAccelerateState,1,1");
         }
 
         [Fact]
@@ -64,6 +64,50 @@ namespace ErgCommTests
             DoAdditionalStrokeDataParsingTestCase("15|DC0300630081020400000000101700", "<timeStamp>,9.88,,,,,,,99.0,641,,,,");
         }
 
+        [Fact]
+        public void ForceCurveDataParsing()
+        {
+            DoForceCurveDataParsingTestCase("20|6900100010001E00290029002C00370037003C00", "6 0 [16, 16, 30, 41, 41, 44, 55, 55, 60]");
+            DoForceCurveDataParsingTestCase("20|690440003A0033002E002E00270021001A000F00", "6 4 [64, 58, 51, 46, 46, 39, 33, 26, 15]");
+            DoForceCurveDataParsingTestCase("8|63050F0008000200", "6 5 [15, 8, 2]");
+        }
+
+        /// <summary>
+        /// Golden-path test of the ForceCurveAssembler
+        /// Could probably use tests for exceptional cases
+        /// </summary>
+        [Fact]
+        public void ForceCurveAssembler()
+        {
+            var assembler = new Concept2PowerCurveAssembler();
+            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            assembler.HandlePowerCurveMessage(ParseDataString("20|6900100010001E00290029002C00370037003C00"));
+            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            assembler.HandlePowerCurveMessage(ParseDataString("20|690146004600430048004A004A004E004E004E00"));
+            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            assembler.HandlePowerCurveMessage(ParseDataString("20|69024E0050005200520050005000520052004E00"));
+            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            assembler.HandlePowerCurveMessage(ParseDataString("20|69034F005100510051004E004B00470047004300"));
+            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            assembler.HandlePowerCurveMessage(ParseDataString("20|690440003A0033002E002E00270021001A000F00"));
+            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            assembler.HandlePowerCurveMessage(ParseDataString("8|63050F0008000200"));
+
+            int[]? fullCurve = assembler.TryGetCompletedPowerCurve();
+            Assert.NotNull(fullCurve);
+
+            string resultString = $"[{string.Join(", ", fullCurve)}]";
+            string expected = "[16, 16, 30, 41, 41, 44, 55, 55, 60, 70, 70, 67, 72, 74, 74, 78, 78, 78, 78, 80, 82, 82, 80, 80, 82, 82, 78, 79, 81, 81, 81, 78, 75, 71, 71, 67, 64, 58, 51, 46, 46, 39, 33, 26, 15, 15, 8, 2]";
+            
+            if (resultString != expected)
+            {
+                _output.WriteLine("ForceCurveAssembler test failed. If this is expected, here is the new expected string:");
+                _output.WriteLine($"{resultString}");
+            }
+            
+            Assert.Equal(expected, resultString);
+        }
+
         private void DoGeneralStatusParsingTestCase(string hexString, string expectedCSV)
         {
             DoParsingTestCase(hexString, Concept2DataParsing.ParseGeneralStatus, expectedCSV);
@@ -96,6 +140,25 @@ namespace ErgCommTests
             }
 
             Assert.Equal(expectedCSV, csv);
+        }
+
+        private void DoForceCurveDataParsingTestCase(string hexString, string expected)
+        {
+            byte[] data = ParseDataString(hexString);
+            (int characteristicCount, int sequenceNumber, int[] samples) = Concept2DataParsing.ParseForceCurveData(data);
+            string resultString = ForceCurveResultToString(characteristicCount, sequenceNumber, samples);
+            if (resultString != expected)
+            {
+                _output.WriteLine("DoForceCurveDataParsingTestCase failed.  If this is expected, here is the new code:");
+                _output.WriteLine($"DoForceCurveDataParsingTestCase(\"{hexString}\", \"{resultString}\");");
+            }
+
+            Assert.Equal(expected, resultString);
+        }
+
+        private string ForceCurveResultToString(int characteristicCount, int sequenceNumber, int[] samples)
+        {
+            return $"{characteristicCount} {sequenceNumber} [{string.Join(", ", samples)}]";
         }
 
 

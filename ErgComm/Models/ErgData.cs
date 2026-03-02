@@ -3,6 +3,15 @@ using System.Collections.Generic;
 
 namespace ErgComm.Models
 {
+    public enum StrokeState
+    {
+        WaitingForWheelToReachMinSpeedState = 0,
+        WaitingForWheelToAccelerateState = 1,
+        DrivingState = 2,
+        DwellingAfterDriveState = 3,
+        RecoveryState = 4
+    }
+
     /// <summary>
     /// Represents real-time data from an ergometer.
     /// </summary>
@@ -67,12 +76,12 @@ namespace ErgComm.Models
         /// Stroke state (0=WaitingForWheelToReachMinSpeedState, 1=WaitingForWheelToAccelerateState, 
         /// 2=DrivingState, 3=DwellingAfterDriveState, 4=RecoveryState).
         /// </summary>
-        public int? StrokeState { get; set; }
+        public StrokeState? StrokeState { get; set; }
 
         /// <summary>
         /// Power curve data points (force values over time during the stroke).
         /// </summary>
-        public List<int>? PowerCurve { get; set; }
+        public int[]? PowerCurve { get; set; }
 
         /// <summary>
         /// Workout state (0=WaitingToBegin, 1=WorkoutRowState, 2=CountDownPauseState, 
@@ -87,11 +96,17 @@ namespace ErgComm.Models
 
         public static string GetCSVHeader()
         {
-            return "Timestamp,ElapsedTime,Distance,Speed,StrokeRate,HeartRate,Pace,AveragePace,Power,Calories,DragFactor,StrokeState,WorkoutState,WorkoutType";
+            return "Timestamp,ElapsedTime,Distance,Speed,StrokeRate,HeartRate,Pace,AveragePace,Power,Calories,DragFactor,StrokeState,WorkoutState,WorkoutType,PowerCurve";
         }
 
         public string ToCSV(bool includeTimestamp = true)
         {
+            string powerCurve = string.Empty;
+            if (PowerCurve != null)
+            {
+                powerCurve = "," + PowerCurveToCSV();
+            }
+
             // Create a CSV line with all properties, using empty string for null values
             return $"{(includeTimestamp ? Timestamp.ToString("O") : "<timeStamp>")}," + // ISO 8601 format for timestamp
                    $"{ElapsedTime?.ToString("F2") ?? ""}," +
@@ -106,7 +121,18 @@ namespace ErgComm.Models
                    $"{DragFactor?.ToString() ?? ""}," +
                    $"{StrokeState?.ToString() ?? ""}," +
                    $"{WorkoutState?.ToString() ?? ""}," +
-                   $"{WorkoutType?.ToString() ?? ""}";
+                   $"{WorkoutType?.ToString() ?? ""}" +
+                   powerCurve;
+        }
+
+        public string PowerCurveToCSV()
+        {
+            if (PowerCurve == null || PowerCurve.Length == 0)
+            {
+                return "";
+            }
+
+            return string.Join(",", PowerCurve);
         }
 
         /// <summary>

@@ -27,7 +27,7 @@ namespace ErgComm.Drivers
         private static readonly Guid PM5CharacteristicAdditionalStatus2 = new("CE060033-43E5-11E4-916C-0800200C9A66");
         private static readonly Guid PM5CharacteristicStrokeData = new("CE060035-43E5-11E4-916C-0800200C9A66");
         private static readonly Guid PM5CharacteristicAdditionalStrokeData = new("CE060036-43E5-11E4-916C-0800200C9A66");
-        private static readonly Guid PM5CharacteristicForceCurveData = new("CE060038-43E5-11E4-916C-0800200C9A66");
+        private static readonly Guid PM5CharacteristicForceCurveData = new("CE06003D-43E5-11E4-916C-0800200C9A66");
 
         private readonly IBluetoothLE _bluetoothLE;
         private readonly IAdapter _adapter;
@@ -35,6 +35,7 @@ namespace ErgComm.Drivers
 
         // Cache for accumulated data from multiple characteristics
         private ErgData _currentData = new();
+        private Concept2PowerCurveAssembler _curveAssembler = new();
         private readonly object _dataLock = new();
 
         public Concept2RowerDriver()
@@ -176,6 +177,13 @@ namespace ErgComm.Drivers
                         var data = Concept2DataParsing.ParseGeneralStatus(e.Characteristic.Value);
                         lock (_dataLock)
                         {
+                            if (data.StrokeState.HasValue && data.StrokeState.Value == StrokeState.RecoveryState)
+                            {
+                                // Clear power curve on recovery to avoid showing stale curve during rest
+                                _curveAssembler.ResetPowerCurve();
+                                _currentData.PowerCurve = null;
+                            }
+
                             UpdateErgData(_currentData, data);
                             dataCallback(CloneErgData(_currentData));
                         }
@@ -236,12 +244,19 @@ namespace ErgComm.Drivers
                     forceCurveChar.ValueUpdated += (s, e) =>
                     {
                         LogBleData("ForceCurveData", e.Characteristic.Value);
-                        var powerCurve = Concept2DataParsing.ParseForceCurveData(e.Characteristic.Value);
                         lock (_dataLock)
                         {
-                            _currentData.PowerCurve = powerCurve;
+                            _curveAssembler.HandlePowerCurveMessage(e.Characteristic.Value);
+                            int[]? curve = _curveAssembler.TryGetCompletedPowerCurve();
+                            if (curve != null)
+                            {
+                                _currentData.PowerCurve = curve;
+                                dataCallback(CloneErgData(_currentData));
+                            }
+
                         }
                     };
+
                     await forceCurveChar.StartUpdatesAsync(cancellationToken);
                 }
 
@@ -329,7 +344,7 @@ namespace ErgComm.Drivers
                 Calories = source.Calories,
                 DragFactor = source.DragFactor,
                 StrokeState = source.StrokeState,
-                PowerCurve = source.PowerCurve?.ToList(),
+                PowerCurve = source.PowerCurve,
                 WorkoutState = source.WorkoutState,
                 WorkoutType = source.WorkoutType
             };

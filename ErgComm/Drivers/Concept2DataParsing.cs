@@ -24,7 +24,7 @@ namespace ErgComm.Drivers
             offset += 1; // Skip interval type (1 byte)
             e.WorkoutState = (int)ParseByte(data, ref offset);
             offset += 1; // Skip rowing state (1 byte)
-            offset += 1; // Skip stroke state (1 byte)
+            e.StrokeState = (StrokeState) ParseByte(data, ref offset);
             offset += 3; // Skip work distance (3 bytes)
             offset += 3; // Skip work duration (3 bytes)
             offset += 1; // Skip work duration type (1 byte)
@@ -106,21 +106,28 @@ namespace ErgComm.Drivers
         }
 
         // Parse Force Curve Data characteristic (0x003D)
-        public static List<int> ParseForceCurveData(byte[] data)
+        public static (int characteristicCount, int sequenceNumber, int[] samples) ParseForceCurveData(byte[] data)
         {
-            if (data == null || data.Length < 4)
-                return new List<int>();
+            if (data == null || data.Length < 2)
+                return (-1, -1, Array.Empty<int>());
 
-            var powerCurve = new List<int>();
-            int dataPoints = BitConverter.ToUInt16(data, 0);
+            int offset = 0;
+            (int characteristicCount, int sampleCount) = ParseNybbles(data, ref offset);
+            int sequenceNumber = (int)ParseByte(data, ref offset);
 
-            for (int i = 0; i < dataPoints && (2 + i * 2) < data.Length; i++)
+            if (sampleCount != (data.Length - offset) / 2)
             {
-                int force = BitConverter.ToUInt16(data, 2 + i * 2);
-                powerCurve.Add(force);
+                // Sample count doesn't match the number of remaining bytes, so return an error
+                return (-1, -1, Array.Empty<int>());
             }
 
-            return powerCurve;
+            int[] samples = new int[sampleCount];
+            for (int i = 0; i < sampleCount; i++)
+            {
+                samples[i] = (int)ParseInt16(data, ref offset);
+            }
+
+            return (characteristicCount, sequenceNumber, samples);
         }
 
         private static uint ParseInt24(byte[] data, ref int offset)
@@ -142,6 +149,14 @@ namespace ErgComm.Drivers
             uint value = data[offset];
             offset += 1;
             return value;
+        }
+
+        private static (int mostSignificantNybble, int leastSignificantNybble) ParseNybbles(byte[] data, ref int offset)
+        {
+            int mostSignificantNybble = (data[offset] >> 4) & 0x0F;
+            int leastSignificantNybble = data[offset] & 0x0F;
+            offset += 1;
+            return (mostSignificantNybble, leastSignificantNybble);
         }
     }
 }
