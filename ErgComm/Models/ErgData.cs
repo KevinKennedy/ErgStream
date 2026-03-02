@@ -22,6 +22,11 @@ namespace ErgComm.Models
         /// Distance in meters.
         /// </summary>
         public double? Distance { get; set; }
+        
+        /// <summary>
+        /// Speed in m/sec
+        /// </summary>
+        public double? Speed { get; set; }
 
         /// <summary>
         /// Current stroke rate (strokes per minute for rower).
@@ -37,6 +42,11 @@ namespace ErgComm.Models
         /// Current pace in seconds per 500m.
         /// </summary>
         public double? Pace { get; set; }
+
+        /// <summary>
+        /// Current pace in seconds per 500m.
+        /// </summary>
+        public double? AveragePace { get; set; }
 
         /// <summary>
         /// Current power output in watts.
@@ -77,7 +87,7 @@ namespace ErgComm.Models
 
         public static string GetCSVHeader()
         {
-            return "Timestamp,ElapsedTime,Distance,StrokeRate,HeartRate,Pace,Power,Calories,DragFactor,StrokeState,WorkoutState,WorkoutType";
+            return "Timestamp,ElapsedTime,Distance,Speed,StrokeRate,HeartRate,Pace,AveragePace,Power,Calories,DragFactor,StrokeState,WorkoutState,WorkoutType";
         }
 
         public string ToCSV(bool includeTimestamp = true)
@@ -86,9 +96,11 @@ namespace ErgComm.Models
             return $"{(includeTimestamp ? Timestamp.ToString("O") : "<timeStamp>")}," + // ISO 8601 format for timestamp
                    $"{ElapsedTime?.ToString("F2") ?? ""}," +
                    $"{Distance?.ToString() ?? ""}," +
+                   $"{Speed?.ToString("F2") ?? ""}," +
                    $"{StrokeRate?.ToString() ?? ""}," +
                    $"{HeartRate?.ToString() ?? ""}," +
                    $"{FormatPace(Pace)}," +
+                   $"{FormatPace(AveragePace)}," +
                    $"{Power?.ToString("F1") ?? ""}," +
                    $"{Calories?.ToString() ?? ""}," +
                    $"{DragFactor?.ToString() ?? ""}," +
