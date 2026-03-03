@@ -18,6 +18,12 @@ namespace ErgComm.Models
     public class ErgData
     {
         /// <summary>
+        /// Unique ID of the stroke. You will get multiple updates
+        /// for the same stroke as more data comes in.
+        /// </summary>
+        public int StrokeId { get; set; } = -1;
+
+        /// <summary>
         /// Timestamp when the data was captured. In local time for easier display, but could be converted to UTC if needed.
         /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.Now;
@@ -93,6 +99,31 @@ namespace ErgComm.Models
         /// Workout type (0=JustRowNoSplits, 1=JustRowSplits, 2=FixedDistanceNoSplits, etc.).
         /// </summary>
         public int? WorkoutType { get; set; }
+
+
+        // Helper to clone ErgData for thread-safe callbacks
+        public ErgData Clone()
+        {
+            return new ErgData
+            {
+                StrokeId = StrokeId,
+                Timestamp = Timestamp,
+                ElapsedTime = ElapsedTime,
+                Distance = Distance,
+                Speed = Speed,
+                StrokeRate = StrokeRate,
+                HeartRate = HeartRate,
+                Pace = Pace,
+                AveragePace = AveragePace,
+                Power = Power,
+                Calories = Calories,
+                DragFactor = DragFactor,
+                StrokeState = StrokeState,
+                ForceCurve = ForceCurve, // shallow copy since this doesn't get updated (right now at least)
+                WorkoutState = WorkoutState,
+                WorkoutType = WorkoutType
+            };
+        }
 
         public static string GetCSVHeader()
         {

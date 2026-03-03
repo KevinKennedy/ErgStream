@@ -16,7 +16,9 @@ namespace ErgCommTests
         [Fact]
         public void LogDataTest()
         {
-            List<ErgData> completedStrokes = new List<ErgData>();
+            List<ErgData> strokeUpdates = new List<ErgData>();
+            Dictionary<int, ErgData> completeStrokes = new Dictionary<int, ErgData>();
+            List<ErgData> completedStatuses = new List<ErgData>();
             Concept2StrokeAssembler strokeAssembler = new Concept2StrokeAssembler();
 
             foreach ((LogDataType dataType, string hexString) in StrokeAssemblerTestData.LogData)
@@ -42,15 +44,27 @@ namespace ErgCommTests
                         break;
                 }
 
-                ErgData? stroke = strokeAssembler.TryGetCompletedStroke();
+                ErgData? stroke = strokeAssembler.TryGetUpdatedStroke();
                 if (stroke != null)
                 {
-                    completedStrokes.Add(stroke);
+                    strokeUpdates.Add(stroke);
+                    completeStrokes[stroke.StrokeId] = stroke;
+                }
+
+                ErgData? status = strokeAssembler.TryGetCompletedStatus();
+                if (status != null)
+                {
+                    completedStatuses.Add(status);
                 }
             }
 
             // TODO: maybe verify some other things...
-            Assert.Equal(17, completedStrokes.Count);
+
+            Assert.Equal(152, strokeUpdates.Count);
+            Assert.Equal(77, completeStrokes.Count);
+            Assert.Equal(40, completeStrokes.Values.Count(i => i.ForceCurve == null));
+
+            Assert.Equal(138, completedStatuses.Count);
         }
     }
 }

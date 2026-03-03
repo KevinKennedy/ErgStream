@@ -14,9 +14,15 @@ namespace ErgComm.Drivers
     public class Concept2StrokeAssembler
     {
         private object dataLock = new();
+        int nextStrokeId = 0;
+
         private ErgData currentStroke = new();
         private Concept2ForceCurveAssembler forceCurveAssembler = new();
-        private ErgData? completedStroke = null;
+        private bool currentStrokeUpdated = false;
+
+        private ErgData currentStatus = new();
+        private ErgData? completedStatus = null;
+        private StrokeState? strokeState = null;
 
         public void OnGeneralStatusMessage(byte[] data)
         {
@@ -24,22 +30,37 @@ namespace ErgComm.Drivers
 
             lock (dataLock)
             {
-                StrokeState? previousStrokeState = currentStroke.StrokeState;
-                currentStroke.Timestamp = generalStatus.Timestamp;
-                currentStroke.ElapsedTime = generalStatus.ElapsedTime;
-                currentStroke.Distance = generalStatus.Distance;
-                currentStroke.WorkoutType = generalStatus.WorkoutType;
-                currentStroke.WorkoutState = generalStatus.WorkoutState;
-                currentStroke.StrokeState = generalStatus.StrokeState;
-                currentStroke.DragFactor = generalStatus.DragFactor;
-
-                if(previousStrokeState == StrokeState.DrivingState &&
-                    currentStroke.StrokeState == StrokeState.RecoveryState)
+                // Clear out the force curve at the change from drive to recovery
+                // This is in case we didn't get the full force curve data for the
+                // stroke. If we didn't do this, the old force curve data would
+                // interfere with the new force curve data.
+                if (strokeState.HasValue && strokeState == StrokeState.DrivingState &&
+                    generalStatus.StrokeState == StrokeState.RecoveryState)
                 {
-                    // The stroke is complete, move it to the completed stroke and start a new one
-                    completedStroke = currentStroke;
-                    currentStroke = new();
                     forceCurveAssembler.ResetForceCurve();
+                }
+
+                bool newStatus = currentStatus.ElapsedTime != generalStatus.ElapsedTime;
+
+                if (newStatus)
+                {
+                    // This is a new set of status messages.
+                    currentStatus = new();
+                }
+
+                currentStatus.Timestamp = generalStatus.Timestamp;
+                currentStatus.ElapsedTime = generalStatus.ElapsedTime;
+                currentStatus.Distance = generalStatus.Distance;
+                currentStatus.WorkoutType = generalStatus.WorkoutType;
+                currentStatus.WorkoutState = generalStatus.WorkoutState;
+                currentStatus.StrokeState = generalStatus.StrokeState;
+                currentStatus.DragFactor = generalStatus.DragFactor;
+
+                if (!newStatus)
+                {
+                    // This is the second of two related status messages
+                    // So the status is complete
+                    completedStatus = currentStatus;
                 }
             }
         }
@@ -49,13 +70,27 @@ namespace ErgComm.Drivers
             ErgData additionalStatus = Concept2DataParsing.ParseAdditionalStatus(data);
             lock (dataLock)
             {
-                currentStroke.Timestamp = additionalStatus.Timestamp;
-                currentStroke.ElapsedTime = additionalStatus.ElapsedTime;
-                currentStroke.Speed = additionalStatus.Speed;
-                currentStroke.StrokeRate = additionalStatus.StrokeRate;
-                currentStroke.HeartRate = additionalStatus.HeartRate;
-                currentStroke.Pace = additionalStatus.Pace;
-                currentStroke.AveragePace = additionalStatus.AveragePace;
+                bool newStatus = currentStatus.ElapsedTime != additionalStatus.ElapsedTime;
+                if (newStatus)
+                {
+                    // This is a new set of status messages.
+                    currentStatus = new();
+                }
+
+                currentStatus.Timestamp = additionalStatus.Timestamp;
+                currentStatus.ElapsedTime = additionalStatus.ElapsedTime;
+                currentStatus.Speed = additionalStatus.Speed;
+                currentStatus.StrokeRate = additionalStatus.StrokeRate;
+                currentStatus.HeartRate = additionalStatus.HeartRate;
+                currentStatus.Pace = additionalStatus.Pace;
+                currentStatus.AveragePace = additionalStatus.AveragePace;
+
+                if (!newStatus)
+                {
+                    // This is the second of two related status messages
+                    // So the status is complete
+                    completedStatus = currentStatus;
+                }
             }
         }
 
@@ -64,9 +99,19 @@ namespace ErgComm.Drivers
             ErgData strokeData = Concept2DataParsing.ParseStrokeData(data);
             lock (dataLock)
             {
+                bool newStroke = currentStroke.ElapsedTime != strokeData.ElapsedTime;
+                if (newStroke)
+                {
+                    // This is a new set of stroke data.
+                    currentStroke = new();
+                    currentStroke.StrokeId = nextStrokeId++;
+                }
+
                 currentStroke.Timestamp = strokeData.Timestamp;
                 currentStroke.ElapsedTime = strokeData.ElapsedTime;
                 currentStroke.Distance = strokeData.Distance;
+
+                currentStrokeUpdated = true;
             }
         }
 
@@ -75,33 +120,58 @@ namespace ErgComm.Drivers
             ErgData additionalStrokeData = Concept2DataParsing.ParseAdditionalStrokeData(data);
             lock (dataLock)
             {
+                bool newStroke = currentStroke.ElapsedTime != additionalStrokeData.ElapsedTime;
+                if (newStroke)
+                {
+                    // This is a new set of stroke data.
+                    currentStroke = new();
+                    currentStroke.StrokeId = nextStrokeId++;
+                }
+
                 currentStroke.Timestamp = additionalStrokeData.Timestamp;
                 currentStroke.ElapsedTime = additionalStrokeData.ElapsedTime;
                 currentStroke.Power = additionalStrokeData.Power;
                 currentStroke.Calories = additionalStrokeData.Calories;
+
+                currentStrokeUpdated = true;
             }
         }
 
         public void OnForceCurveMessage(byte[] data)
         {
-            lock(dataLock)
+            lock (dataLock)
             {
                 forceCurveAssembler.HandlePowerCurveMessage(data);
                 int[]? fullCurve = forceCurveAssembler.TryGetCompletedForceCurve();
                 if (fullCurve != null)
                 {
                     currentStroke.ForceCurve = fullCurve;
+                    currentStrokeUpdated = true;
                 }
             }
         }
 
-        public ErgData? TryGetCompletedStroke()
+        public ErgData? TryGetUpdatedStroke()
         {
             lock (dataLock)
             {
-                ErgData? stroke = completedStroke;
-                completedStroke = null;
-                return stroke;
+                if (currentStrokeUpdated)
+                {
+                    currentStrokeUpdated = false;
+                    return currentStroke.Clone();
+                }
+            }
+
+            return null;
+        }
+
+        public ErgData? TryGetCompletedStatus()
+        {
+            lock (dataLock)
+            {
+                ErgData? status = completedStatus;
+                completedStatus = null;
+                return status;
             }
         }
     }

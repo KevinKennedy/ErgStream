@@ -162,16 +162,16 @@ namespace ErgComm.Drivers
                 // Get characteristics
                 var characteristics = await pmService.GetCharacteristicsAsync();
 
-                var generalStatusChar = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicGeneralStatus);
-                var additionalStatusChar = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicAdditionalStatus);
-                var strokeDataChar = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicStrokeData);
-                var additionalStrokeDataChar = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicAdditionalStrokeData);
-                var forceCurveChar = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicForceCurveData);
+                var generalStatusCharacteristic = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicGeneralStatus);
+                var additionalStatusCharacteristic = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicAdditionalStatus);
+                var strokeDataCharacteristic = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicStrokeData);
+                var additionalStrokeDataCharacteristic = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicAdditionalStrokeData);
+                var forceCurveCharacteristic = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicForceCurveData);
 
                 // Subscribe to Rowing General Status (primary data source)
-                if (generalStatusChar != null)
+                if (generalStatusCharacteristic != null)
                 {
-                    generalStatusChar.ValueUpdated += (s, e) =>
+                    generalStatusCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("GeneralStatus", e.Characteristic.Value);
                         var data = Concept2DataParsing.ParseGeneralStatus(e.Characteristic.Value);
@@ -185,16 +185,16 @@ namespace ErgComm.Drivers
                             }
 
                             UpdateErgData(_currentData, data);
-                            dataCallback(CloneErgData(_currentData));
+                            dataCallback(_currentData.Clone());
                         }
                     };
-                    await generalStatusChar.StartUpdatesAsync(cancellationToken);
+                    await generalStatusCharacteristic.StartUpdatesAsync(cancellationToken);
                 }
 
                 // Subscribe to Additional Status (workout type, drag factor)
-                if (additionalStatusChar != null)
+                if (additionalStatusCharacteristic != null)
                 {
-                    additionalStatusChar.ValueUpdated += (s, e) =>
+                    additionalStatusCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("AdditionalStatus", e.Characteristic.Value);
                         var data = Concept2DataParsing.ParseAdditionalStatus(e.Characteristic.Value);
@@ -203,13 +203,13 @@ namespace ErgComm.Drivers
                             UpdateErgData(_currentData, data);
                         }
                     };
-                    await additionalStatusChar.StartUpdatesAsync(cancellationToken);
+                    await additionalStatusCharacteristic.StartUpdatesAsync(cancellationToken);
                 }
 
                 // Subscribe to Stroke Data (stroke-end events)
-                if (strokeDataChar != null)
+                if (strokeDataCharacteristic != null)
                 {
-                    strokeDataChar.ValueUpdated += (s, e) =>
+                    strokeDataCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("StrokeData", e.Characteristic.Value);
                         var data = Concept2DataParsing.ParseStrokeData(e.Characteristic.Value);
@@ -217,16 +217,16 @@ namespace ErgComm.Drivers
                         {
                             UpdateErgData(_currentData, data);
                             // Callback on stroke-end event
-                            dataCallback(CloneErgData(_currentData));
+                            dataCallback(_currentData.Clone());
                         }
                     };
-                    await strokeDataChar.StartUpdatesAsync(cancellationToken);
+                    await strokeDataCharacteristic.StartUpdatesAsync(cancellationToken);
                 }
 
                 // Subscribe to Additional Stroke Data (more stroke details)
-                if (additionalStrokeDataChar != null)
+                if (additionalStrokeDataCharacteristic != null)
                 {
-                    additionalStrokeDataChar.ValueUpdated += (s, e) =>
+                    additionalStrokeDataCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("AdditionalStrokeData", e.Characteristic.Value);
                         var data = Concept2DataParsing.ParseAdditionalStrokeData(e.Characteristic.Value);
@@ -235,13 +235,13 @@ namespace ErgComm.Drivers
                             UpdateErgData(_currentData, data);
                         }
                     };
-                    await additionalStrokeDataChar.StartUpdatesAsync(cancellationToken);
+                    await additionalStrokeDataCharacteristic.StartUpdatesAsync(cancellationToken);
                 }
 
                 // Subscribe to Force Curve Data
-                if (forceCurveChar != null)
+                if (forceCurveCharacteristic != null)
                 {
-                    forceCurveChar.ValueUpdated += (s, e) =>
+                    forceCurveCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("ForceCurveData", e.Characteristic.Value);
                         lock (_dataLock)
@@ -251,13 +251,13 @@ namespace ErgComm.Drivers
                             if (curve != null)
                             {
                                 _currentData.ForceCurve = curve;
-                                dataCallback(CloneErgData(_currentData));
+                                dataCallback(_currentData.Clone());
                             }
 
                         }
                     };
 
-                    await forceCurveChar.StartUpdatesAsync(cancellationToken);
+                    await forceCurveCharacteristic.StartUpdatesAsync(cancellationToken);
                 }
 
                 // Keep connection alive until cancelled
@@ -327,27 +327,6 @@ namespace ErgComm.Drivers
                 current.WorkoutState = update.WorkoutState;
             if (update.WorkoutType.HasValue)
                 current.WorkoutType = update.WorkoutType;
-        }
-
-        // Helper to clone ErgData for thread-safe callbacks
-        private static ErgData CloneErgData(ErgData source)
-        {
-            return new ErgData
-            {
-                Timestamp = source.Timestamp,
-                ElapsedTime = source.ElapsedTime,
-                Distance = source.Distance,
-                StrokeRate = source.StrokeRate,
-                HeartRate = source.HeartRate,
-                Pace = source.Pace,
-                Power = source.Power,
-                Calories = source.Calories,
-                DragFactor = source.DragFactor,
-                StrokeState = source.StrokeState,
-                ForceCurve = source.ForceCurve,
-                WorkoutState = source.WorkoutState,
-                WorkoutType = source.WorkoutType
-            };
         }
     }
 }
