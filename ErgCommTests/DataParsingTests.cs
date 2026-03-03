@@ -79,21 +79,21 @@ namespace ErgCommTests
         [Fact]
         public void ForceCurveAssembler()
         {
-            var assembler = new Concept2PowerCurveAssembler();
-            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            var assembler = new Concept2ForceCurveAssembler();
+            Assert.Null(assembler.TryGetCompletedForceCurve());
             assembler.HandlePowerCurveMessage(ParseDataString("20|6900100010001E00290029002C00370037003C00"));
-            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            Assert.Null(assembler.TryGetCompletedForceCurve());
             assembler.HandlePowerCurveMessage(ParseDataString("20|690146004600430048004A004A004E004E004E00"));
-            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            Assert.Null(assembler.TryGetCompletedForceCurve());
             assembler.HandlePowerCurveMessage(ParseDataString("20|69024E0050005200520050005000520052004E00"));
-            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            Assert.Null(assembler.TryGetCompletedForceCurve());
             assembler.HandlePowerCurveMessage(ParseDataString("20|69034F005100510051004E004B00470047004300"));
-            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            Assert.Null(assembler.TryGetCompletedForceCurve());
             assembler.HandlePowerCurveMessage(ParseDataString("20|690440003A0033002E002E00270021001A000F00"));
-            Assert.Null(assembler.TryGetCompletedPowerCurve());
+            Assert.Null(assembler.TryGetCompletedForceCurve());
             assembler.HandlePowerCurveMessage(ParseDataString("8|63050F0008000200"));
 
-            int[]? fullCurve = assembler.TryGetCompletedPowerCurve();
+            int[]? fullCurve = assembler.TryGetCompletedForceCurve();
             Assert.NotNull(fullCurve);
 
             string resultString = $"[{string.Join(", ", fullCurve)}]";
@@ -161,9 +161,7 @@ namespace ErgCommTests
             return $"{characteristicCount} {sequenceNumber} [{string.Join(", ", samples)}]";
         }
 
-
-
-        private static byte[] ParseDataString(string v)
+        internal static byte[] ParseDataString(string v)
         {
             string[] parts = v.Split('|');
             if (parts.Length != 2)

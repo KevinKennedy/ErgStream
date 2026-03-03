@@ -81,7 +81,7 @@ namespace ErgComm.Models
         /// <summary>
         /// Power curve data points (force values over time during the stroke).
         /// </summary>
-        public int[]? PowerCurve { get; set; }
+        public int[]? ForceCurve { get; set; }
 
         /// <summary>
         /// Workout state (0=WaitingToBegin, 1=WorkoutRowState, 2=CountDownPauseState, 
@@ -101,10 +101,10 @@ namespace ErgComm.Models
 
         public string ToCSV(bool includeTimestamp = true)
         {
-            string powerCurve = string.Empty;
-            if (PowerCurve != null)
+            string forceCurve = string.Empty;
+            if (ForceCurve != null)
             {
-                powerCurve = "," + PowerCurveToCSV();
+                forceCurve = "," + ForceCurveToCSV();
             }
 
             // Create a CSV line with all properties, using empty string for null values
@@ -122,17 +122,17 @@ namespace ErgComm.Models
                    $"{StrokeState?.ToString() ?? ""}," +
                    $"{WorkoutState?.ToString() ?? ""}," +
                    $"{WorkoutType?.ToString() ?? ""}" +
-                   powerCurve;
+                   forceCurve;
         }
 
-        public string PowerCurveToCSV()
+        public string ForceCurveToCSV()
         {
-            if (PowerCurve == null || PowerCurve.Length == 0)
+            if (ForceCurve == null || ForceCurve.Length == 0)
             {
                 return "";
             }
 
-            return string.Join(",", PowerCurve);
+            return string.Join(",", ForceCurve);
         }
 
         /// <summary>

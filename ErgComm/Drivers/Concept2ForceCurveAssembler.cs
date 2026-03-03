@@ -6,50 +6,50 @@ using System.Threading.Tasks;
 
 namespace ErgComm.Drivers
 {
-    public class Concept2PowerCurveAssembler
+    public class Concept2ForceCurveAssembler
     {
-        private Dictionary<int, int[]> _currentPowerCurve = new();
+        private Dictionary<int, int[]> _currentForceCurve = new();
         private int _expectedMessageCount = -1;
 
-        public void ResetPowerCurve()
+        public void ResetForceCurve()
         {
-            _currentPowerCurve.Clear();
+            _currentForceCurve.Clear();
         }
 
         public void HandlePowerCurveMessage(byte[] data)
         {
-            var powerCurvePart = Concept2DataParsing.ParseForceCurveData(data);
-            if (powerCurvePart.sequenceNumber == -1)
+            var forceCurvePart = Concept2DataParsing.ParseForceCurveData(data);
+            if (forceCurvePart.sequenceNumber == -1)
             {
                 // We received some invalid data so just clear it out
                 // This can happen of BLE is overloaded
-                ResetPowerCurve();
+                ResetForceCurve();
                 return;
             }
 
-            if (_currentPowerCurve.ContainsKey(powerCurvePart.sequenceNumber))
+            if (_currentForceCurve.ContainsKey(forceCurvePart.sequenceNumber))
             {
-                // Duplicate key, assume this is a new power curve and clear existing data
-                _currentPowerCurve.Clear();
+                // Duplicate key, assume this is a new force curve and clear existing data
+                _currentForceCurve.Clear();
             }
 
-            _currentPowerCurve[powerCurvePart.sequenceNumber] = powerCurvePart.samples;
-            _expectedMessageCount = powerCurvePart.characteristicCount;
+            _currentForceCurve[forceCurvePart.sequenceNumber] = forceCurvePart.samples;
+            _expectedMessageCount = forceCurvePart.characteristicCount;
         }
 
-        public int[]? TryGetCompletedPowerCurve()
+        public int[]? TryGetCompletedForceCurve()
         {
-            if (_expectedMessageCount == -1 || _currentPowerCurve.Count != _expectedMessageCount)
+            if (_expectedMessageCount == -1 || _currentForceCurve.Count != _expectedMessageCount)
             {
                 // Power curve is not complete
                 return null;
             }
 
-            int totalSampleCount = _currentPowerCurve.Sum(kvp => kvp.Value.Length);
+            int totalSampleCount = _currentForceCurve.Sum(kvp => kvp.Value.Length);
             int[] fullCurve = new int[totalSampleCount];
             for (int characteristicIndex = 0, offset = 0; characteristicIndex < _expectedMessageCount; characteristicIndex++)
             {
-                if (_currentPowerCurve.TryGetValue(characteristicIndex, out var samples))
+                if (_currentForceCurve.TryGetValue(characteristicIndex, out var samples))
                 {
                     Array.Copy(samples, 0, fullCurve, offset, samples.Length);
                     offset += samples.Length;
@@ -57,12 +57,12 @@ namespace ErgComm.Drivers
                 else
                 {
                     // Missing part of the power curve, this shouldn't happen but just clear out to be safe
-                    _currentPowerCurve.Clear();
+                    _currentForceCurve.Clear();
                     return null;
                 }
             }
 
-            _currentPowerCurve.Clear();
+            _currentForceCurve.Clear();
             return fullCurve;
         }
     }

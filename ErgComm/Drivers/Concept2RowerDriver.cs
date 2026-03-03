@@ -35,7 +35,7 @@ namespace ErgComm.Drivers
 
         // Cache for accumulated data from multiple characteristics
         private ErgData _currentData = new();
-        private Concept2PowerCurveAssembler _curveAssembler = new();
+        private Concept2ForceCurveAssembler _curveAssembler = new();
         private readonly object _dataLock = new();
 
         public Concept2RowerDriver()
@@ -179,9 +179,9 @@ namespace ErgComm.Drivers
                         {
                             if (data.StrokeState.HasValue && data.StrokeState.Value == StrokeState.RecoveryState)
                             {
-                                // Clear power curve on recovery to avoid showing stale curve during rest
-                                _curveAssembler.ResetPowerCurve();
-                                _currentData.PowerCurve = null;
+                                // Clear force curve on recovery to avoid showing stale curve during rest
+                                _curveAssembler.ResetForceCurve();
+                                _currentData.ForceCurve = null;
                             }
 
                             UpdateErgData(_currentData, data);
@@ -238,7 +238,7 @@ namespace ErgComm.Drivers
                     await additionalStrokeDataChar.StartUpdatesAsync(cancellationToken);
                 }
 
-                // Subscribe to Force Curve Data (power curve)
+                // Subscribe to Force Curve Data
                 if (forceCurveChar != null)
                 {
                     forceCurveChar.ValueUpdated += (s, e) =>
@@ -247,10 +247,10 @@ namespace ErgComm.Drivers
                         lock (_dataLock)
                         {
                             _curveAssembler.HandlePowerCurveMessage(e.Characteristic.Value);
-                            int[]? curve = _curveAssembler.TryGetCompletedPowerCurve();
+                            int[]? curve = _curveAssembler.TryGetCompletedForceCurve();
                             if (curve != null)
                             {
-                                _currentData.PowerCurve = curve;
+                                _currentData.ForceCurve = curve;
                                 dataCallback(CloneErgData(_currentData));
                             }
 
@@ -344,7 +344,7 @@ namespace ErgComm.Drivers
                 Calories = source.Calories,
                 DragFactor = source.DragFactor,
                 StrokeState = source.StrokeState,
-                PowerCurve = source.PowerCurve,
+                ForceCurve = source.ForceCurve,
                 WorkoutState = source.WorkoutState,
                 WorkoutType = source.WorkoutType
             };

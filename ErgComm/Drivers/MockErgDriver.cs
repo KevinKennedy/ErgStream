@@ -57,7 +57,7 @@ namespace ErgComm.Drivers
                 distance += distanceIncrement;
 
                 // Simulate power curve (force data points during stroke)
-                var powerCurve = GenerateMockPowerCurve(power);
+                var forceCurve = GenerateMockForceCurve(power);
 
                 // Simulate stroke state cycling
                 var strokeState = ((StrokeState)((elapsed * 2) % 5)); // Cycle through states
@@ -74,7 +74,7 @@ namespace ErgComm.Drivers
                     Calories = (int)(elapsed * 10 / 60), // ~10 cal/min
                     DragFactor = 110 + _random.Next(-5, 5), // Typical drag factor
                     StrokeState = strokeState,
-                    PowerCurve = powerCurve,
+                    ForceCurve = forceCurve,
                     WorkoutState = 1, // WorkoutRowState
                     WorkoutType = 0 // JustRowNoSplits
                 };
@@ -92,7 +92,7 @@ namespace ErgComm.Drivers
             return 500.0 / (2.8 * Math.Pow(watts, 1.0 / 3.0));
         }
 
-        private int[] GenerateMockPowerCurve(double avgPower)
+        private int[] GenerateMockForceCurve(double avgPower)
         {
             // Generate realistic power curve with ~16 data points
             var curve = new List<int>();
