@@ -191,6 +191,7 @@ namespace ErgStream.Pages
                 //_dataBuilder.AppendLine(data.GetCsvHeader());
             }
 
+            System.Diagnostics.Debug.WriteLine(data.ToString());
             _dataBuilder.AppendLine(data.ToString());
 
             // Update the displayed text

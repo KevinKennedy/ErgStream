@@ -104,7 +104,8 @@ namespace ErgComm.Models
                    $"Elapsed: {ElapsedTime?.ToString("F2") ?? "-"}  " +
                    $"Distance: {Distance?.ToString() ?? "-"}  " +
                    $"Power: {Power?.ToString("F1") ?? "-"}  " +
-                   $"Calories: {Calories?.ToString() ?? "-"}  ";
+                   $"Calories: {Calories?.ToString() ?? "-"}  " +
+                   $"ForceCurve: {(ForceCurve == null ? "-" : ForceCurveToCSV())}";
 
         }
 

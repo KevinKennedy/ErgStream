@@ -216,7 +216,7 @@ namespace ErgComm.Drivers
                     additionalStrokeDataCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("AdditionalStrokeData", e.Characteristic.Value);
-                        ergDataAssembler.OnStrokeDataMessage(e.Characteristic.Value);
+                        ergDataAssembler.OnAdditionalStrokeDataMessage(e.Characteristic.Value);
                         if (ergDataAssembler.TryGetUpdatedStroke() is StrokeData stroke)
                         {
                             strokeDataCallback(stroke);
