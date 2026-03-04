@@ -51,6 +51,11 @@ namespace ErgComm.Models
             return Distance.HasValue && Power.HasValue && ForceCurve != null;
         }
 
+        public bool IsCompleteMinusForceCurve()
+        {
+            return Distance.HasValue && Power.HasValue;
+        }
+
         // Helper to clone StrokeData for thread-safe callbacks
         public StrokeData Clone()
         {

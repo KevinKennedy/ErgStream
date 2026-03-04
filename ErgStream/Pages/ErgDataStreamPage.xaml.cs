@@ -176,7 +176,11 @@ namespace ErgStream.Pages
                     else
                     {
                         // We've received a new stroke ID, so write out the previous, likely incomplete stroke
-                        WriteDataRow(currentStroke);
+                        // Don't write this out if we haven't received both stroke state messages. Force curve is optional.
+                        if (currentStroke.IsCompleteMinusForceCurve())
+                        {
+                            WriteDataRow(currentStroke);
+                        }
 
                         currentStroke = strokeData;
                     }
