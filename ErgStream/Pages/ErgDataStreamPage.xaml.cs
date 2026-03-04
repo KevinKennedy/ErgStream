@@ -10,8 +10,10 @@ namespace ErgStream.Pages
         private readonly ErgCommService _ergCommService;
         private CancellationTokenSource? _connectionCts;
         private readonly StringBuilder _dataBuilder;
-        private bool _isHeaderWritten;
         private string _ergId = string.Empty;
+
+        private ErgStatus? currentErgStatus = null;
+        private StrokeData? currentStroke = null;
 
         public string ErgId
         {
@@ -58,7 +60,6 @@ namespace ErgStream.Pages
             
             _ergCommService = new ErgCommService();
             _dataBuilder = new StringBuilder();
-            _isHeaderWritten = false;
 
             BindingContext = this;
         }
@@ -95,7 +96,8 @@ namespace ErgStream.Pages
 
                 await _ergCommService.ConnectToErgAsync(
                     ergId,
-                    OnErgDataReceived,
+                    OnErgStatusDataReceived,
+                    OnErgStrokeDataReceived,
                     _connectionCts.Token);
             }
             catch (OperationCanceledException)
@@ -114,44 +116,93 @@ namespace ErgStream.Pages
             }
         }
 
-        private void OnErgDataReceived(ErgData data)
+        private void OnErgStatusDataReceived(ErgStatus ergStatus)
         {
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 IsConnecting = false;
 
-                // Write CSV header on first data received
-                if (!_isHeaderWritten)
+                if (currentErgStatus == null)
                 {
-                    WriteHeader();
-                    _isHeaderWritten = true;
+                    currentErgStatus = ergStatus;
                 }
+                else
+                {
+                    if (currentErgStatus.StatusId == ergStatus.StatusId)
+                    {
+                        // This is an update to the current status
+                        currentErgStatus = ergStatus;
 
-                // Write data row
-                WriteDataRow(data);
+                        if (currentErgStatus.IsComplete())
+                        {
+                            WriteDataRow(currentErgStatus);
+                            currentErgStatus = null;
+                        }
+                    }
+                    else
+                    {
+                        // We've received a new status ID, so write out the previous, likely incomplete status
+                        WriteDataRow(currentErgStatus);
 
-                // Update the displayed text
-                DataText = _dataBuilder.ToString();
-
-                // Scroll to bottom
-                DataScrollView.ScrollToAsync(DataLabel, ScrollToPosition.End, false);
+                        currentErgStatus = ergStatus;
+                    }
+                }
             });
         }
 
-        private void WriteHeader()
+        private void OnErgStrokeDataReceived(StrokeData strokeData)
         {
-            _dataBuilder.AppendLine(ErgData.GetCSVHeader());
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                IsConnecting = false;
+
+                if (currentStroke == null)
+                {
+                    currentStroke = strokeData;
+                }
+                else
+                {
+                    if (currentStroke.StrokeId == strokeData.StrokeId)
+                    {
+                        // This is an update to the current stroke
+                        currentStroke = strokeData;
+
+                        if (currentStroke.IsComplete())
+                        {
+                            WriteDataRow(currentStroke);
+                            currentStroke = null;
+                        }
+                    }
+                    else
+                    {
+                        // We've received a new stroke ID, so write out the previous, likely incomplete stroke
+                        WriteDataRow(currentStroke);
+
+                        currentStroke = strokeData;
+                    }
+                }
+            });
         }
 
-        private void WriteDataRow(ErgData data)
+        private void WriteDataRow(object data)
         {
-            _dataBuilder.AppendLine(data.ToCSV());
+            if (_dataBuilder.Length == 0)
+            {
+                //_dataBuilder.AppendLine(data.GetCsvHeader());
+            }
+
+            _dataBuilder.AppendLine(data.ToString());
+
+            // Update the displayed text
+            DataText = _dataBuilder.ToString();
+
+            // Scroll to bottom
+            DataScrollView.ScrollToAsync(DataLabel, ScrollToPosition.End, false);
         }
 
         private void OnClearClicked(object sender, EventArgs e)
         {
             _dataBuilder.Clear();
-            _isHeaderWritten = false;
             DataText = string.Empty;
         }
 

@@ -8,7 +8,7 @@ namespace ErgComm.Drivers
     {
 
         // Parse Rowing General Status characteristic (0x0031)
-        public static ErgData ParseGeneralStatus(byte[] data)
+        public static ErgStatus ParseGeneralStatus(byte[] data)
         {
             if (data == null || data.Length != 19)
             {
@@ -16,7 +16,7 @@ namespace ErgComm.Drivers
             }
 
             int offset = 0;
-            ErgData e = new();
+            ErgStatus e = new();
             e.Timestamp = DateTime.Now;
             e.ElapsedTime = ParseInt24(data, ref offset) / 100.0; // centiseconds to seconds
             e.Distance = ParseInt24(data, ref offset) / 10.0; // decimeters to meters
@@ -33,7 +33,7 @@ namespace ErgComm.Drivers
         }
 
         // Parse Additional Status characteristic (0x0032)
-        public static ErgData ParseAdditionalStatus(byte[] data)
+        public static ErgStatus ParseAdditionalStatus(byte[] data)
         {
             if (data == null || data.Length != 17)
             {
@@ -41,7 +41,7 @@ namespace ErgComm.Drivers
             }
 
             int offset = 0;
-            ErgData e = new();
+            ErgStatus e = new();
             e.Timestamp = DateTime.Now;
             e.ElapsedTime = ParseInt24(data, ref offset) / 100.0; // centiseconds to seconds
             e.Speed = ParseInt16(data, ref offset) / 1000.0; // millimeters per second to meters per second
@@ -62,7 +62,7 @@ namespace ErgComm.Drivers
         }
 
         // Parse Stroke Data characteristic (0x0035) - Stroke-End Events
-        public static ErgData ParseStrokeData(byte[] data)
+        public static StrokeData ParseStrokeData(byte[] data)
         {
             if (data == null || data.Length != 20)
             {
@@ -70,7 +70,7 @@ namespace ErgComm.Drivers
             }
 
             int offset = 0;
-            ErgData e = new();
+            StrokeData e = new();
             e.Timestamp = DateTime.Now;
             e.ElapsedTime = ParseInt24(data, ref offset) / 100.0; // centiseconds to seconds
             e.Distance = ParseInt24(data, ref offset) / 10.0; // decimeters to meters
@@ -86,7 +86,7 @@ namespace ErgComm.Drivers
         }
 
         // Parse Additional Stroke Data characteristic (0x0036)
-        public static ErgData ParseAdditionalStrokeData(byte[] data)
+        public static StrokeData ParseAdditionalStrokeData(byte[] data)
         {
             if (data == null || data.Length != 15)
             {
@@ -94,7 +94,7 @@ namespace ErgComm.Drivers
             }
 
             int offset = 0;
-            ErgData e = new();
+            StrokeData e = new();
             e.Timestamp = DateTime.Now;
             e.ElapsedTime = ParseInt24(data, ref offset) / 100.0; // centiseconds to seconds
             e.Power = ParseInt16(data, ref offset); // watts

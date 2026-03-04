@@ -4,11 +4,11 @@ using Xunit.Abstractions;
 
 namespace ErgCommTests
 {
-    public class StrokeAssemblerTest
+    public class ErgDataAssemblerTest
     {
         private readonly ITestOutputHelper _output;
 
-        public StrokeAssemblerTest(ITestOutputHelper output)
+        public ErgDataAssemblerTest(ITestOutputHelper output)
         {
             _output = output;
         }
@@ -16,45 +16,48 @@ namespace ErgCommTests
         [Fact]
         public void LogDataTest()
         {
-            List<ErgData> strokeUpdates = new List<ErgData>();
-            Dictionary<int, ErgData> completeStrokes = new Dictionary<int, ErgData>();
-            List<ErgData> completedStatuses = new List<ErgData>();
-            Concept2StrokeAssembler strokeAssembler = new Concept2StrokeAssembler();
+            List<StrokeData> strokeUpdates = new();
+            Dictionary<int, StrokeData> completeStrokes = new();
+            List<ErgStatus> statusUpdates = new();
+            Dictionary<int, ErgStatus> completedStatuses = new();
 
-            foreach ((LogDataType dataType, string hexString) in StrokeAssemblerTestData.LogData)
+            Concept2ErgDataAssembler ergDataAssembler = new();
+
+            foreach ((LogDataType dataType, string hexString) in ErgDataAssemblerTestData.LogData)
             {
                 byte[] data = DataParsingTests.ParseDataString(hexString);
 
                 switch (dataType)
                 {
                     case LogDataType.GeneralStatus:
-                        strokeAssembler.OnGeneralStatusMessage(data);
+                        ergDataAssembler.OnGeneralStatusMessage(data);
                         break;
                     case LogDataType.AdditionalStatus:
-                        strokeAssembler.OnAdditionalStatusMessage(data);
+                        ergDataAssembler.OnAdditionalStatusMessage(data);
                         break;
                     case LogDataType.StrokeData:
-                        strokeAssembler.OnStrokeDataMessage(data);
+                        ergDataAssembler.OnStrokeDataMessage(data);
                         break;
                     case LogDataType.AdditionalStrokeData:
-                        strokeAssembler.OnAdditionalStrokeDataMessage(data);
+                        ergDataAssembler.OnAdditionalStrokeDataMessage(data);
                         break;
                     case LogDataType.ForceCurveData:
-                        strokeAssembler.OnForceCurveMessage(data);
+                        ergDataAssembler.OnForceCurveMessage(data);
                         break;
                 }
 
-                ErgData? stroke = strokeAssembler.TryGetUpdatedStroke();
+                StrokeData? stroke = ergDataAssembler.TryGetUpdatedStroke();
                 if (stroke != null)
                 {
                     strokeUpdates.Add(stroke);
                     completeStrokes[stroke.StrokeId] = stroke;
                 }
 
-                ErgData? status = strokeAssembler.TryGetCompletedStatus();
+                ErgStatus? status = ergDataAssembler.TryGetUpdatedStatus();
                 if (status != null)
                 {
-                    completedStatuses.Add(status);
+                    statusUpdates.Add(status);
+                    completedStatuses[status.StatusId] = status;
                 }
             }
 
@@ -64,7 +67,8 @@ namespace ErgCommTests
             Assert.Equal(77, completeStrokes.Count);
             Assert.Equal(40, completeStrokes.Values.Count(i => i.ForceCurve == null));
 
-            Assert.Equal(138, completedStatuses.Count);
+            Assert.Equal(220, statusUpdates.Count);
+            Assert.Equal(82, completedStatuses.Count);
         }
     }
 }

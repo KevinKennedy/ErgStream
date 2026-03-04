@@ -33,11 +33,6 @@ namespace ErgComm.Drivers
         private readonly IAdapter _adapter;
         private IDevice? _connectedDevice;
 
-        // Cache for accumulated data from multiple characteristics
-        private ErgData _currentData = new();
-        private Concept2ForceCurveAssembler _curveAssembler = new();
-        private readonly object _dataLock = new();
-
         public Concept2RowerDriver()
         {
             _bluetoothLE = CrossBluetoothLE.Current;
@@ -141,7 +136,7 @@ namespace ErgComm.Drivers
             await Task.WhenAll(scanTask, updateTask);
         }
 
-        public async Task ConnectAndStreamAsync(string ergId, Action<ErgData> dataCallback, CancellationToken cancellationToken)
+        public async Task ConnectAndStreamAsync(string ergId, Action<ErgStatus> statusDataCallback, Action<StrokeData> strokeDataCallback, CancellationToken cancellationToken)
         {
             try
             {
@@ -168,24 +163,18 @@ namespace ErgComm.Drivers
                 var additionalStrokeDataCharacteristic = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicAdditionalStrokeData);
                 var forceCurveCharacteristic = characteristics.FirstOrDefault(c => c.Id == PM5CharacteristicForceCurveData);
 
+                Concept2ErgDataAssembler ergDataAssembler = new();
+
                 // Subscribe to Rowing General Status (primary data source)
                 if (generalStatusCharacteristic != null)
                 {
                     generalStatusCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("GeneralStatus", e.Characteristic.Value);
-                        var data = Concept2DataParsing.ParseGeneralStatus(e.Characteristic.Value);
-                        lock (_dataLock)
+                        ergDataAssembler.OnGeneralStatusMessage(e.Characteristic.Value);
+                        if (ergDataAssembler.TryGetUpdatedStatus() is ErgStatus status)
                         {
-                            if (data.StrokeState.HasValue && data.StrokeState.Value == StrokeState.RecoveryState)
-                            {
-                                // Clear force curve on recovery to avoid showing stale curve during rest
-                                _curveAssembler.ResetForceCurve();
-                                _currentData.ForceCurve = null;
-                            }
-
-                            UpdateErgData(_currentData, data);
-                            dataCallback(_currentData.Clone());
+                            statusDataCallback(status);
                         }
                     };
                     await generalStatusCharacteristic.StartUpdatesAsync(cancellationToken);
@@ -197,10 +186,10 @@ namespace ErgComm.Drivers
                     additionalStatusCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("AdditionalStatus", e.Characteristic.Value);
-                        var data = Concept2DataParsing.ParseAdditionalStatus(e.Characteristic.Value);
-                        lock (_dataLock)
+                        ergDataAssembler.OnAdditionalStatusMessage(e.Characteristic.Value);
+                        if (ergDataAssembler.TryGetUpdatedStatus() is ErgStatus status)
                         {
-                            UpdateErgData(_currentData, data);
+                            statusDataCallback(status);
                         }
                     };
                     await additionalStatusCharacteristic.StartUpdatesAsync(cancellationToken);
@@ -212,12 +201,10 @@ namespace ErgComm.Drivers
                     strokeDataCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("StrokeData", e.Characteristic.Value);
-                        var data = Concept2DataParsing.ParseStrokeData(e.Characteristic.Value);
-                        lock (_dataLock)
+                        ergDataAssembler.OnStrokeDataMessage(e.Characteristic.Value);
+                        if (ergDataAssembler.TryGetUpdatedStroke() is StrokeData stroke)
                         {
-                            UpdateErgData(_currentData, data);
-                            // Callback on stroke-end event
-                            dataCallback(_currentData.Clone());
+                            strokeDataCallback(stroke);
                         }
                     };
                     await strokeDataCharacteristic.StartUpdatesAsync(cancellationToken);
@@ -229,10 +216,10 @@ namespace ErgComm.Drivers
                     additionalStrokeDataCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("AdditionalStrokeData", e.Characteristic.Value);
-                        var data = Concept2DataParsing.ParseAdditionalStrokeData(e.Characteristic.Value);
-                        lock (_dataLock)
+                        ergDataAssembler.OnStrokeDataMessage(e.Characteristic.Value);
+                        if (ergDataAssembler.TryGetUpdatedStroke() is StrokeData stroke)
                         {
-                            UpdateErgData(_currentData, data);
+                            strokeDataCallback(stroke);
                         }
                     };
                     await additionalStrokeDataCharacteristic.StartUpdatesAsync(cancellationToken);
@@ -244,16 +231,10 @@ namespace ErgComm.Drivers
                     forceCurveCharacteristic.ValueUpdated += (s, e) =>
                     {
                         LogBleData("ForceCurveData", e.Characteristic.Value);
-                        lock (_dataLock)
+                        ergDataAssembler.OnForceCurveMessage(e.Characteristic.Value);
+                        if (ergDataAssembler.TryGetUpdatedStroke() is StrokeData stroke)
                         {
-                            _curveAssembler.HandlePowerCurveMessage(e.Characteristic.Value);
-                            int[]? curve = _curveAssembler.TryGetCompletedForceCurve();
-                            if (curve != null)
-                            {
-                                _currentData.ForceCurve = curve;
-                                dataCallback(_currentData.Clone());
-                            }
-
+                            strokeDataCallback(stroke);
                         }
                     };
 
@@ -297,36 +278,6 @@ namespace ErgComm.Drivers
 
             var hexString = Convert.ToHexString(data);
             System.Diagnostics.Debug.WriteLine($"BLE|{characteristicName}|{data.Length}|{hexString}");
-        }
-
-
-        // Helper to merge partial data into current data
-        private static void UpdateErgData(ErgData current, ErgData update)
-        {
-            if (update.Timestamp != default)
-                current.Timestamp = update.Timestamp;
-            if (update.ElapsedTime > 0)
-                current.ElapsedTime = update.ElapsedTime;
-            if (update.Distance > 0)
-                current.Distance = update.Distance;
-            if (update.StrokeRate > 0)
-                current.StrokeRate = update.StrokeRate;
-            if (update.HeartRate.HasValue)
-                current.HeartRate = update.HeartRate;
-            if (update.Pace > 0)
-                current.Pace = update.Pace;
-            if (update.Power > 0)
-                current.Power = update.Power;
-            if (update.Calories > 0)
-                current.Calories = update.Calories;
-            if (update.DragFactor.HasValue)
-                current.DragFactor = update.DragFactor;
-            if (update.StrokeState.HasValue)
-                current.StrokeState = update.StrokeState;
-            if (update.WorkoutState > 0)
-                current.WorkoutState = update.WorkoutState;
-            if (update.WorkoutType.HasValue)
-                current.WorkoutType = update.WorkoutType;
         }
     }
 }

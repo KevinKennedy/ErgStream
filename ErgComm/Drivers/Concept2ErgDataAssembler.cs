@@ -1,36 +1,33 @@
 ﻿using ErgComm.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ErgComm.Drivers
 {
     /// <summary>
     /// Takes the raw BLE messages from the Concept2 rower and assembles them
-    /// into complete stroke data objects that can be consumed by the the application
+    /// into complete status and stroke data objects that can be consumed by
+    /// the the application.
     /// </summary>
-    public class Concept2StrokeAssembler
+    public class Concept2ErgDataAssembler
     {
         private object dataLock = new();
-        int nextStrokeId = 0;
 
-        private ErgData currentStroke = new();
+        private int nextStrokeId = 0;
+        private StrokeData currentStroke = new();
         private Concept2ForceCurveAssembler forceCurveAssembler = new();
         private bool currentStrokeUpdated = false;
 
-        private ErgData currentStatus = new();
-        private ErgData? completedStatus = null;
+        private int nextStatusId = 10000;
+        private ErgStatus? currentStatus = null;
+        private bool currentStatusUpdated = false;
         private StrokeState? strokeState = null;
 
         public void OnGeneralStatusMessage(byte[] data)
         {
-            ErgData generalStatus = Concept2DataParsing.ParseGeneralStatus(data);
+            ErgStatus generalStatus = Concept2DataParsing.ParseGeneralStatus(data);
 
             lock (dataLock)
             {
-                // Clear out the force curve at the change from drive to recovery
+                // Clear out the force curve at the change from drive to recovery.
                 // This is in case we didn't get the full force curve data for the
                 // stroke. If we didn't do this, the old force curve data would
                 // interfere with the new force curve data.
@@ -40,12 +37,12 @@ namespace ErgComm.Drivers
                     forceCurveAssembler.ResetForceCurve();
                 }
 
-                bool newStatus = currentStatus.ElapsedTime != generalStatus.ElapsedTime;
-
-                if (newStatus)
+                if (currentStatus == null ||
+                        currentStatus.ElapsedTime != generalStatus.ElapsedTime)
                 {
                     // This is a new set of status messages.
                     currentStatus = new();
+                    currentStatus.StatusId = nextStatusId++;
                 }
 
                 currentStatus.Timestamp = generalStatus.Timestamp;
@@ -56,25 +53,21 @@ namespace ErgComm.Drivers
                 currentStatus.StrokeState = generalStatus.StrokeState;
                 currentStatus.DragFactor = generalStatus.DragFactor;
 
-                if (!newStatus)
-                {
-                    // This is the second of two related status messages
-                    // So the status is complete
-                    completedStatus = currentStatus;
-                }
+                currentStatusUpdated = true;
             }
         }
 
         public void OnAdditionalStatusMessage(byte[] data)
         {
-            ErgData additionalStatus = Concept2DataParsing.ParseAdditionalStatus(data);
+            ErgStatus additionalStatus = Concept2DataParsing.ParseAdditionalStatus(data);
             lock (dataLock)
             {
-                bool newStatus = currentStatus.ElapsedTime != additionalStatus.ElapsedTime;
-                if (newStatus)
+                if (currentStatus == null ||
+                        currentStatus.ElapsedTime != additionalStatus.ElapsedTime)
                 {
                     // This is a new set of status messages.
                     currentStatus = new();
+                    currentStatus.StatusId = nextStatusId++;
                 }
 
                 currentStatus.Timestamp = additionalStatus.Timestamp;
@@ -85,18 +78,13 @@ namespace ErgComm.Drivers
                 currentStatus.Pace = additionalStatus.Pace;
                 currentStatus.AveragePace = additionalStatus.AveragePace;
 
-                if (!newStatus)
-                {
-                    // This is the second of two related status messages
-                    // So the status is complete
-                    completedStatus = currentStatus;
-                }
+                currentStatusUpdated = true;
             }
         }
 
         public void OnStrokeDataMessage(byte[] data)
         {
-            ErgData strokeData = Concept2DataParsing.ParseStrokeData(data);
+            StrokeData strokeData = Concept2DataParsing.ParseStrokeData(data);
             lock (dataLock)
             {
                 bool newStroke = currentStroke.ElapsedTime != strokeData.ElapsedTime;
@@ -117,7 +105,7 @@ namespace ErgComm.Drivers
 
         public void OnAdditionalStrokeDataMessage(byte[] data)
         {
-            ErgData additionalStrokeData = Concept2DataParsing.ParseAdditionalStrokeData(data);
+            StrokeData additionalStrokeData = Concept2DataParsing.ParseAdditionalStrokeData(data);
             lock (dataLock)
             {
                 bool newStroke = currentStroke.ElapsedTime != additionalStrokeData.ElapsedTime;
@@ -151,7 +139,7 @@ namespace ErgComm.Drivers
             }
         }
 
-        public ErgData? TryGetUpdatedStroke()
+        public StrokeData? TryGetUpdatedStroke()
         {
             lock (dataLock)
             {
@@ -165,14 +153,18 @@ namespace ErgComm.Drivers
             return null;
         }
 
-        public ErgData? TryGetCompletedStatus()
+        public ErgStatus? TryGetUpdatedStatus()
         {
             lock (dataLock)
             {
-                ErgData? status = completedStatus;
-                completedStatus = null;
-                return status;
+                if (currentStatusUpdated && currentStatus != null)
+                {
+                    currentStatusUpdated = false;
+                    return currentStatus.Clone();
+                }
             }
+
+            return null;
         }
     }
 }

@@ -32,7 +32,7 @@ namespace ErgComm.Drivers
             return Task.CompletedTask;
         }
 
-        public async Task ConnectAndStreamAsync(string ergId, Action<ErgData> dataCallback, CancellationToken cancellationToken)
+        public async Task ConnectAndStreamAsync(string ergId, Action<ErgStatus> statusDataCallback, Action<StrokeData> strokeDataCallback, CancellationToken cancellationToken)
         {
             if (ergId != MockErgId)
                 throw new ArgumentException($"Invalid mock erg ID: {ergId}");
@@ -62,24 +62,24 @@ namespace ErgComm.Drivers
                 // Simulate stroke state cycling
                 var strokeState = ((StrokeState)((elapsed * 2) % 5)); // Cycle through states
 
-                var data = new ErgData
+                var data = new StrokeData
                 {
                     Timestamp = DateTime.UtcNow,
                     ElapsedTime = elapsed,
                     Distance = distance,
-                    StrokeRate = strokeRate,
-                    HeartRate = 140 + _random.Next(-10, 10), // 130-150 bpm
-                    Pace = pace,
+                    //StrokeRate = strokeRate,
+                    //HeartRate = 140 + _random.Next(-10, 10), // 130-150 bpm
+                    //Pace = pace,
                     Power = power,
                     Calories = (int)(elapsed * 10 / 60), // ~10 cal/min
-                    DragFactor = 110 + _random.Next(-5, 5), // Typical drag factor
-                    StrokeState = strokeState,
+                    //DragFactor = 110 + _random.Next(-5, 5), // Typical drag factor
+                    //StrokeState = strokeState,
                     ForceCurve = forceCurve,
-                    WorkoutState = 1, // WorkoutRowState
-                    WorkoutType = 0 // JustRowNoSplits
+                    //WorkoutState = 1, // WorkoutRowState
+                    //WorkoutType = 0 // JustRowNoSplits
                 };
 
-                dataCallback(data);
+                strokeDataCallback(data);
 
                 await Task.Delay(1000, cancellationToken); // Update every 1 second
             }

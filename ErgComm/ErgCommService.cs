@@ -90,11 +90,13 @@ namespace ErgComm
         /// Connects to a specific ergometer and starts streaming data.
         /// </summary>
         /// <param name="ergId">The unique identifier of the erg to connect to.</param>
-        /// <param name="dataCallback">Callback invoked when new data is available from the erg.</param>
+        /// <param name="statusDataCallback">Callback invoked when new status data is available from the erg.</param>
+        /// <param name="strokeDataCallback">Callback invoked when new stroke data is available from the erg.</param>
         /// <param name="cancellationToken">Token to cancel the connection and stop streaming data.</param>
         public async Task ConnectToErgAsync(
             string ergId, 
-            Action<ErgData> dataCallback, 
+            Action<ErgStatus> statusDataCallback,
+            Action<StrokeData> strokeDataCallback, 
             CancellationToken cancellationToken)
         {
             // Determine which driver to use based on ergId
@@ -112,9 +114,11 @@ namespace ErgComm
             }
 
             if (targetDriver == null)
+            {
                 throw new InvalidOperationException($"No suitable driver found for erg ID: {ergId}");
+            }
 
-            await targetDriver.ConnectAndStreamAsync(ergId, dataCallback, cancellationToken);
+            await targetDriver.ConnectAndStreamAsync(ergId, statusDataCallback, strokeDataCallback, cancellationToken);
         }
     }
 }

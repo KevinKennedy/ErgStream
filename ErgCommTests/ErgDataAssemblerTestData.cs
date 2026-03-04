@@ -9,7 +9,7 @@
         ForceCurveData
     }
 
-    internal static class StrokeAssemblerTestData
+    internal static class ErgDataAssemblerTestData
     {
         public static IEnumerable<(LogDataType dataType, string hexString)> LogData
         {
