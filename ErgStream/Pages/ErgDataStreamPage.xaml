@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:sfgrid="clr-namespace:Syncfusion.Maui.DataGrid;assembly=Syncfusion.Maui.DataGrid"
              x:Class="ErgStream.Pages.ErgDataStreamPage"
              Title="Erg Data Stream">
     
-    <Grid RowDefinitions="*,Auto" Padding="10">
+    <Grid RowDefinitions="*,*,Auto" Padding="10">
         
         <!-- Data Display Area -->
         <ScrollView x:Name="DataScrollView" Grid.Row="0">
@@ -15,8 +16,88 @@
                    VerticalOptions="Start"/>
         </ScrollView>
 
+      <sfgrid:SfDataGrid
+        x:Name="DataGrid"
+        Grid.Row="1"
+        ItemsSource="{Binding DataRows}"
+        AutoGenerateColumnsMode="None"
+        AllowResizingColumns="True"
+        ColumnWidthMode="Auto"
+        SelectionMode="Single"
+        GridLinesVisibility="Both"
+        HeaderGridLinesVisibility="Both"
+        VerticalScrollBarVisibility="Default"
+        HorizontalScrollBarVisibility="Default">
+        
+        <sfgrid:SfDataGrid.Columns>
+          <sfgrid:DataGridTextColumn MappingName="TimeStamp" 
+                                      HeaderText="Time Stamp" 
+                                      Width="150"
+                                      Format="yyyy-MM-dd HH:mm:ss.fff"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="ElapsedTime" 
+                                         HeaderText="Elapsed (s)" 
+                                         Width="100"
+                                         Format="0.##"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="Distance" 
+                                         HeaderText="Distance (m)" 
+                                         Width="110"
+                                         Format="0.##"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="WorkoutType" 
+                                         HeaderText="Workout Type" 
+                                         Width="110"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="WorkoutState" 
+                                         HeaderText="Workout State" 
+                                         Width="120"/>
+          
+          <sfgrid:DataGridTextColumn MappingName="StrokeState" 
+                                      HeaderText="Stroke State" 
+                                      Width="120"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="DragFactor" 
+                                         HeaderText="Drag Factor" 
+                                         Width="100"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="Speed" 
+                                         HeaderText="Speed (m/s)" 
+                                         Width="100"
+                                         Format="0.##"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="StrokeRate" 
+                                         HeaderText="Stroke Rate" 
+                                         Width="100"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="HeartRate" 
+                                         HeaderText="Heart Rate" 
+                                         Width="90"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="Pace" 
+                                         HeaderText="Pace (s/500m)" 
+                                         Width="110"
+                                         Format="0.##"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="AveragePace" 
+                                         HeaderText="Avg Pace (s/500m)" 
+                                         Width="130"
+                                         Format="0.##"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="Power" 
+                                         HeaderText="Power (W)" 
+                                         Width="90"
+                                         Format="0.##"/>
+          
+          <sfgrid:DataGridNumericColumn MappingName="Calories" 
+                                         HeaderText="Calories" 
+                                         Width="80"/>
+        </sfgrid:SfDataGrid.Columns>
+      </sfgrid:SfDataGrid>
+
+
         <!-- Loading Indicator -->
-        <ActivityIndicator Grid.Row="0"
+      <ActivityIndicator Grid.Row="0" Grid.RowSpan="2"
                           IsRunning="{Binding IsConnecting}"
                           IsVisible="{Binding IsConnecting}"
                           Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
@@ -24,7 +105,7 @@
                           VerticalOptions="Center"/>
 
         <!-- Button Panel -->
-        <HorizontalStackLayout Grid.Row="1" 
+        <HorizontalStackLayout Grid.Row="2" 
                               Spacing="10"
                               HorizontalOptions="Center"
                               Margin="0,10,0,0">
@@ -35,6 +116,10 @@
             
             <Button Text="Copy"
                     Command="{Binding CopyCommand}"
+                    WidthRequest="120"/>
+            
+            <Button Text="Reset Columns"
+                    Clicked="OnResetColumnWidths"
                     WidthRequest="120"/>
         </HorizontalStackLayout>
     </Grid>

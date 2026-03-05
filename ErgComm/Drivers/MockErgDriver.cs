@@ -15,6 +15,7 @@ namespace ErgComm.Drivers
         private const string MockErgId = "MOCK-ERG-001";
         private const string MockErgName = "Mock Erg (Test Data)";
         private readonly Random _random = new();
+        private int nextStrokeId = 100;
 
         public Task StartDiscoveryAsync(Action<List<ErgInfo>> ergListCallback, CancellationToken cancellationToken)
         {
@@ -64,6 +65,7 @@ namespace ErgComm.Drivers
 
                 var data = new StrokeData
                 {
+                    StrokeId = nextStrokeId++,
                     Timestamp = DateTime.UtcNow,
                     ElapsedTime = elapsed,
                     Distance = distance,

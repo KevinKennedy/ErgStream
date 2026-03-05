@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ErgComm;
 using ErgComm.Models;
+using System.Collections.ObjectModel;
 using System.Text;
 
 namespace ErgStream.ViewModels
@@ -23,6 +24,12 @@ namespace ErgStream.ViewModels
 
         [ObservableProperty]
         private string _dataText = string.Empty;
+
+        [ObservableProperty]
+        private ObservableCollection<ErgDataStreamRow> dataRows = new();
+
+        private Dictionary<int, ErgDataStreamRow> statusMessages = new();
+        private Dictionary<int, ErgDataStreamRow> strokeMessages = new();
 
         public ErgDataStreamViewModel(ErgCommService ergCommService)
         {
@@ -95,6 +102,18 @@ namespace ErgStream.ViewModels
             {
                 IsConnecting = false;
 
+                if (statusMessages.TryGetValue(ergStatus.StatusId, out var existingRow))
+                {
+                    existingRow.UpdateFromStatus(ergStatus);
+                }
+                else
+                {
+                    var newRow = new ErgDataStreamRow();
+                    newRow.UpdateFromStatus(ergStatus);
+                    statusMessages[ergStatus.StatusId] = newRow;
+                    DataRows.Add(newRow);
+                }
+
                 if (_currentErgStatus == null)
                 {
                     _currentErgStatus = ergStatus;
@@ -128,6 +147,18 @@ namespace ErgStream.ViewModels
             MainThread.BeginInvokeOnMainThread(() =>
             {
                 IsConnecting = false;
+
+                if (strokeMessages.TryGetValue(strokeData.StrokeId, out var existingRow))
+                {
+                    existingRow.UpdateFromStroke(strokeData);
+                }
+                else
+                {
+                    var newRow = new ErgDataStreamRow();
+                    newRow.UpdateFromStroke(strokeData);
+                    strokeMessages[strokeData.StrokeId] = newRow;
+                    DataRows.Add(newRow);
+                }
 
                 if (_currentStroke == null)
                 {
