@@ -62,14 +62,14 @@ namespace ErgComm.Drivers
                 if (device.Name?.Contains("PM5", StringComparison.OrdinalIgnoreCase) == true ||
                     device.Name?.Contains("Concept2", StringComparison.OrdinalIgnoreCase) == true)
                 {
-                    // TODO: We may be able to use IDevice.AdvertisementRecords here.
-                    IService pm5Service = await device.GetServiceAsync(PM5ServiceUuid);
+                    //// TODO: We may be able to use IDevice.AdvertisementRecords here.
+                    //IService pm5Service = await device.GetServiceAsync(PM5ServiceUuid);
 
-                    if(pm5Service == null)
-                    {
-                        // Not a PM5 device
-                        return;
-                    }
+                    //if(pm5Service == null)
+                    //{
+                    //    // Not a PM5 device
+                    //    return;
+                    //}
 
                     var ergInfo = new ErgInfo
                     {

@@ -4,6 +4,7 @@ using System.Text;
 using ErgStream.ViewModels;
 using System.ComponentModel;
 using Syncfusion.Maui.DataGrid;
+using System.Collections.Specialized;
 
 namespace ErgStream.Pages
 {
@@ -22,6 +23,9 @@ namespace ErgStream.Pages
             // Subscribe to property changes
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
+            // Subscribe to DataRows collection changes for auto-scroll
+            _viewModel.DataRows.CollectionChanged += OnDataRowsCollectionChanged;
+
             // Subscribe to column resizing event
             DataGrid.ColumnResizing += OnDataGridColumnResized;
             
@@ -35,6 +39,16 @@ namespace ErgStream.Pages
             {
                 // Scroll to bottom when DataText changes
                 DataScrollView.ScrollToAsync(DataLabel, ScrollToPosition.End, false);
+            }
+        }
+
+        private void OnDataRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            // Scroll to the last item when new data is added
+            if (e.Action == NotifyCollectionChangedAction.Add && _viewModel.DataRows.Count > 0)
+            {
+                var lastItem = _viewModel.DataRows[_viewModel.DataRows.Count - 1];
+                DataGrid.ScrollToRowIndex(_viewModel.DataRows.Count - 1, ScrollToPosition.MakeVisible, canAnimate: true);
             }
         }
 
@@ -130,6 +144,7 @@ namespace ErgStream.Pages
         {
             base.OnDisappearing();
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.DataRows.CollectionChanged -= OnDataRowsCollectionChanged;
             
             if (BindingContext is ErgDataStreamViewModel viewModel)
             {

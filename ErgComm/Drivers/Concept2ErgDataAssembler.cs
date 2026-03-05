@@ -160,7 +160,19 @@ namespace ErgComm.Drivers
                 if (currentStatusUpdated && currentStatus != null)
                 {
                     currentStatusUpdated = false;
-                    return currentStatus!.Clone();
+                    ErgStatus clone = currentStatus.Clone();
+
+                    // If a complete status is going to be retrieved, clear out the current status
+                    // We need to do this because, if you sit too long after taking a stroke,
+                    // elapsed time stops incrementing. Since we use elapsed time
+                    // to match up messages, we'll keep reusing the same status ID until
+                    // elapsed time changes.
+                    if(currentStatus.IsComplete())
+                    {
+                        currentStatus = null;
+                    }
+
+                    return clone;
                 }
             }
 

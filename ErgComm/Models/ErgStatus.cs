@@ -148,7 +148,9 @@ namespace ErgComm.Models
 
         override public string ToString()
         {
-            return $"{Timestamp.ToString("O")}  " + // ISO 8601 format for timestamp
+            return 
+                   $"StatusId: {StatusId}  " +
+                   $"{Timestamp.ToString("O")}  " + // ISO 8601 format for timestamp
                    $"Elapsed: {ElapsedTime?.ToString("F2") ?? "-"}  " +
                    $"Distance: {Distance?.ToString() ?? "-"}  " +
                    $"WorkoutType: {WorkoutType?.ToString() ?? "-"}  " +
