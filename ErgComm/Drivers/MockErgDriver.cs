@@ -103,7 +103,7 @@ namespace ErgComm.Drivers
                 // Bell curve shape for drive phase
                 double normalized = i / 16.0;
                 double bellCurve = Math.Exp(-Math.Pow((normalized - 0.4) * 4, 2));
-                int force = (int)(avgPower * bellCurve * 2.5 + _random.Next(-10, 10));
+                int force = (int)(avgPower * bellCurve + _random.Next(-10, 10));
                 curve.Add(Math.Max(0, force));
             }
             return curve.ToArray();

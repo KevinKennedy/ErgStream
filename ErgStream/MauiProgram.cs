@@ -3,6 +3,7 @@ using ErgStream.ViewModels;
 using ErgStream.Pages;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using SkiaSharp.Views.Maui.Controls.Hosting;
 using Syncfusion.Licensing;
 using Syncfusion.Maui.Core.Hosting;
 using Syncfusion.Maui.Toolkit.Hosting;
@@ -17,6 +18,7 @@ namespace ErgStream
             builder
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
+                .UseSkiaSharp()
                 .ConfigureSyncfusionToolkit()
                 .ConfigureSyncfusionCore()
                 .ConfigureMauiHandlers(handlers =>

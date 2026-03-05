@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:sfgrid="clr-namespace:Syncfusion.Maui.DataGrid;assembly=Syncfusion.Maui.DataGrid"
+             xmlns:controls="clr-namespace:ErgStream.Controls"
              x:Class="ErgStream.Pages.ErgDataStreamPage"
              Title="Erg Data Stream">
     
@@ -71,7 +72,7 @@
                                          Width="100"/>
           
           <sfgrid:DataGridNumericColumn MappingName="HeartRate" 
-                                         HeaderText="Heart Rate" 
+                                         HeaderText="Heart Rate (bpm)" 
                                          Width="90"/>
           
           <sfgrid:DataGridNumericColumn MappingName="Pace" 
@@ -90,8 +91,24 @@
                                          Format="0.##"/>
           
           <sfgrid:DataGridNumericColumn MappingName="Calories" 
-                                         HeaderText="Calories" 
+                                         HeaderText="Calories (kc/h)" 
                                          Width="80"/>
+
+          <sfgrid:DataGridTemplateColumn MappingName="ForceCurve"
+                                          HeaderText="Force Curve"
+                                          Width="380">
+            <sfgrid:DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <controls:SparkLineView Data="{Binding ForceCurve}"
+                                        LineColor="DodgerBlue"
+                                        LineThickness="1.5"
+                                        HeightRequest="30"
+                                        MaxValue="200"
+                                        VerticalOptions="Center"
+                                        HorizontalOptions="Start"/>
+              </DataTemplate>
+            </sfgrid:DataGridTemplateColumn.CellTemplate>
+          </sfgrid:DataGridTemplateColumn>
         </sfgrid:SfDataGrid.Columns>
       </sfgrid:SfDataGrid>
 

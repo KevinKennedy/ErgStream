@@ -87,7 +87,7 @@ namespace ErgStream.ViewModels
         private double? power;
 
         /// <summary>
-        /// Total calories burned.
+        /// Calories per hour of the stroke
         /// </summary>
         [ObservableProperty]
         private int? calories;
