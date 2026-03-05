@@ -3,61 +3,39 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ErgStream.Pages.ErgDataStreamPage"
              Title="Erg Data Stream">
+    
+    <Grid RowDefinitions="*,Auto" Padding="10">
+        
+        <!-- Data Display Area -->
+        <ScrollView x:Name="DataScrollView" Grid.Row="0">
+            <Label x:Name="DataLabel" 
+                   Text="{Binding DataText}"
+                   FontFamily="Courier"
+                   FontSize="12"
+                   VerticalOptions="Start"/>
+        </ScrollView>
 
-    <Grid RowDefinitions="Auto,*" Padding="10">
+        <!-- Loading Indicator -->
+        <ActivityIndicator Grid.Row="0"
+                          IsRunning="{Binding IsConnecting}"
+                          IsVisible="{Binding IsConnecting}"
+                          Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource Primary}}"
+                          HorizontalOptions="Center"
+                          VerticalOptions="Center"/>
 
-        <!-- Action Buttons -->
-        <HorizontalStackLayout Grid.Row="0" 
-                              Spacing="10" 
-                              Margin="0,0,0,10"
-                              HorizontalOptions="Center">
-            <Button x:Name="ClearButton"
-                    Text="Clear"
-                    Clicked="OnClearClicked"
+        <!-- Button Panel -->
+        <HorizontalStackLayout Grid.Row="1" 
+                              Spacing="10"
+                              HorizontalOptions="Center"
+                              Margin="0,10,0,0">
+            
+            <Button Text="Clear"
+                    Command="{Binding ClearCommand}"
                     WidthRequest="120"/>
-            <Button x:Name="CopyButton"
-                    Text="Copy"
-                    Clicked="OnCopyClicked"
+            
+            <Button Text="Copy"
+                    Command="{Binding CopyCommand}"
                     WidthRequest="120"/>
         </HorizontalStackLayout>
-
-        <!-- Data Display with ScrollView -->
-        <Border Grid.Row="1"
-                StrokeThickness="1"
-                Stroke="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"
-                BackgroundColor="{AppThemeBinding Light={StaticResource Gray100}, Dark={StaticResource Gray900}}">
-            <Border.StrokeShape>
-                <RoundRectangle CornerRadius="8"/>
-            </Border.StrokeShape>
-
-            <ScrollView x:Name="DataScrollView">
-                <Label x:Name="DataLabel"
-                       Text="{Binding DataText}"
-                       FontFamily="Courier New"
-                       FontSize="12"
-                       Padding="10"
-                       VerticalOptions="Start"
-                       LineBreakMode="NoWrap"/>
-            </ScrollView>
-        </Border>
-
-        <!-- Loading Overlay -->
-        <Grid Grid.RowSpan="2" 
-              x:Name="LoadingOverlay"
-              IsVisible="{Binding IsConnecting}"
-              BackgroundColor="#80000000">
-            <VerticalStackLayout HorizontalOptions="Center"
-                                VerticalOptions="Center"
-                                Spacing="10">
-                <ActivityIndicator IsRunning="{Binding IsConnecting}"
-                                  Color="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                                  WidthRequest="50"
-                                  HeightRequest="50"/>
-                <Label Text="Connecting to ergometer..."
-                       FontSize="18"
-                       TextColor="White"
-                       HorizontalOptions="Center"/>
-            </VerticalStackLayout>
-        </Grid>
     </Grid>
 </ContentPage>
