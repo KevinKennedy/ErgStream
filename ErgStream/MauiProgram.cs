@@ -1,4 +1,6 @@
 ﻿using CommunityToolkit.Maui;
+using ErgStream.ViewModels;
+using ErgStream.Pages;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Syncfusion.Licensing;
@@ -41,6 +43,10 @@ namespace ErgStream
             builder.Services.AddSingleton<ModalErrorHandler>();
 
             builder.Services.AddSingleton<ErgComm.ErgCommService>();
+
+            // Register ViewModels and Pages
+            builder.Services.AddTransient<ErgDataStreamViewModel>();
+            builder.Services.AddTransient<ErgDataStreamPage>();
 
             var app = builder.Build();
 
