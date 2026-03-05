@@ -416,3 +416,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Syncfusion license configuration and other settings we don't want in source control
+**/appsettings.json

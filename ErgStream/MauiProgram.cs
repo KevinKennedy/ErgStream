@@ -1,5 +1,8 @@
 ﻿using CommunityToolkit.Maui;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Syncfusion.Licensing;
+using Syncfusion.Maui.Core.Hosting;
 using Syncfusion.Maui.Toolkit.Hosting;
 
 namespace ErgStream
@@ -13,6 +16,7 @@ namespace ErgStream
                 .UseMauiApp<App>()
                 .UseMauiCommunityToolkit()
                 .ConfigureSyncfusionToolkit()
+                .ConfigureSyncfusionCore()
                 .ConfigureMauiHandlers(handlers =>
                 {
 #if IOS || MACCATALYST
@@ -27,6 +31,8 @@ namespace ErgStream
                     fonts.AddFont("FluentSystemIcons-Regular.ttf", FluentUI.FontFamily);
                 });
 
+            builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+
 #if DEBUG
     		builder.Logging.AddDebug();
     		builder.Services.AddLogging(configure => configure.AddDebug());
@@ -36,7 +42,16 @@ namespace ErgStream
 
             builder.Services.AddSingleton<ErgComm.ErgCommService>();
 
-            return builder.Build();
+            var app = builder.Build();
+
+            // Register Syncfusion license from configuration
+            var licenseKey = app.Configuration["Syncfusion:LicenseKey"];
+            if (!string.IsNullOrEmpty(licenseKey))
+            {
+                SyncfusionLicenseProvider.RegisterLicense(licenseKey);
+            }
+
+            return app;
         }
     }
 }

@@ -12,7 +12,7 @@ namespace ErgComm.Drivers
         private object dataLock = new();
 
         private int nextStrokeId = 0;
-        private StrokeData currentStroke = new();
+        private StrokeData? currentStroke = null;
         private Concept2ForceCurveAssembler forceCurveAssembler = new();
         private bool currentStrokeUpdated = false;
 
@@ -45,7 +45,7 @@ namespace ErgComm.Drivers
                     currentStatus.StatusId = nextStatusId++;
                 }
 
-                currentStatus.Timestamp = generalStatus.Timestamp;
+                currentStatus!.Timestamp = generalStatus.Timestamp;
                 currentStatus.ElapsedTime = generalStatus.ElapsedTime;
                 currentStatus.Distance = generalStatus.Distance;
                 currentStatus.WorkoutType = generalStatus.WorkoutType;
@@ -70,7 +70,7 @@ namespace ErgComm.Drivers
                     currentStatus.StatusId = nextStatusId++;
                 }
 
-                currentStatus.Timestamp = additionalStatus.Timestamp;
+                currentStatus!.Timestamp = additionalStatus.Timestamp;
                 currentStatus.ElapsedTime = additionalStatus.ElapsedTime;
                 currentStatus.Speed = additionalStatus.Speed;
                 currentStatus.StrokeRate = additionalStatus.StrokeRate;
@@ -87,7 +87,7 @@ namespace ErgComm.Drivers
             StrokeData strokeData = Concept2DataParsing.ParseStrokeData(data);
             lock (dataLock)
             {
-                bool newStroke = currentStroke.ElapsedTime != strokeData.ElapsedTime;
+                bool newStroke = currentStroke == null || currentStroke.ElapsedTime != strokeData.ElapsedTime;
                 if (newStroke)
                 {
                     // This is a new set of stroke data.
@@ -95,7 +95,7 @@ namespace ErgComm.Drivers
                     currentStroke.StrokeId = nextStrokeId++;
                 }
 
-                currentStroke.Timestamp = strokeData.Timestamp;
+                currentStroke!.Timestamp = strokeData.Timestamp;
                 currentStroke.ElapsedTime = strokeData.ElapsedTime;
                 currentStroke.Distance = strokeData.Distance;
 
@@ -108,7 +108,7 @@ namespace ErgComm.Drivers
             StrokeData additionalStrokeData = Concept2DataParsing.ParseAdditionalStrokeData(data);
             lock (dataLock)
             {
-                bool newStroke = currentStroke.ElapsedTime != additionalStrokeData.ElapsedTime;
+                bool newStroke = currentStroke == null || currentStroke.ElapsedTime != additionalStrokeData.ElapsedTime;
                 if (newStroke)
                 {
                     // This is a new set of stroke data.
@@ -116,7 +116,7 @@ namespace ErgComm.Drivers
                     currentStroke.StrokeId = nextStrokeId++;
                 }
 
-                currentStroke.Timestamp = additionalStrokeData.Timestamp;
+                currentStroke!.Timestamp = additionalStrokeData.Timestamp;
                 currentStroke.ElapsedTime = additionalStrokeData.ElapsedTime;
                 currentStroke.Power = additionalStrokeData.Power;
                 currentStroke.Calories = additionalStrokeData.Calories;
@@ -131,7 +131,7 @@ namespace ErgComm.Drivers
             {
                 forceCurveAssembler.HandlePowerCurveMessage(data);
                 int[]? fullCurve = forceCurveAssembler.TryGetCompletedForceCurve();
-                if (fullCurve != null)
+                if (fullCurve != null && currentStroke != null)
                 {
                     currentStroke.ForceCurve = fullCurve;
                     currentStrokeUpdated = true;
@@ -146,7 +146,7 @@ namespace ErgComm.Drivers
                 if (currentStrokeUpdated)
                 {
                     currentStrokeUpdated = false;
-                    return currentStroke.Clone();
+                    return currentStroke!.Clone();
                 }
             }
 
@@ -160,7 +160,7 @@ namespace ErgComm.Drivers
                 if (currentStatusUpdated && currentStatus != null)
                 {
                     currentStatusUpdated = false;
-                    return currentStatus.Clone();
+                    return currentStatus!.Clone();
                 }
             }
 
