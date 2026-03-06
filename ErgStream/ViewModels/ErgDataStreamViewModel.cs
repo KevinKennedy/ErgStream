@@ -17,6 +17,7 @@ namespace ErgStream.ViewModels
     public partial class ErgDataStreamViewModel : ObservableObject, IQueryAttributable
     {
         private const string ErgDataFilterPreferenceKey = "ErgDataStream_DataFilter";
+        private const string AutoScrollEnabledPreferenceKey = "ErgDataStream_AutoScrollEnabled";
 
         private readonly ErgCommService ergCommService;
         private CancellationTokenSource? connectionCancellationTokenSource;
@@ -31,6 +32,9 @@ namespace ErgStream.ViewModels
         private ErgDataFilter ergDataFilter = ErgDataFilter.All;
 
         [ObservableProperty]
+        private bool autoScrollEnabled = true;
+
+        [ObservableProperty]
         private ObservableCollection<ErgDataStreamRow> dataRows = new();
 
         private Dictionary<int, ErgDataStreamRow> statusMessages = new();
@@ -40,6 +44,7 @@ namespace ErgStream.ViewModels
         {
             this.ergCommService = ergCommService;
             RestoreErgDataFilter();
+            RestoreAutoScrollEnabled();
         }
 
         private void RestoreErgDataFilter()
@@ -54,6 +59,16 @@ namespace ErgStream.ViewModels
         private void SaveErgDataFilter()
         {
             Preferences.Set(ErgDataFilterPreferenceKey, ErgDataFilter.ToString());
+        }
+
+        private void RestoreAutoScrollEnabled()
+        {
+            AutoScrollEnabled = Preferences.Get(AutoScrollEnabledPreferenceKey, true);
+        }
+
+        partial void OnAutoScrollEnabledChanged(bool value)
+        {
+            Preferences.Set(AutoScrollEnabledPreferenceKey, value);
         }
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
