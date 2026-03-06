@@ -5,6 +5,7 @@ using ErgStream.ViewModels;
 using System.ComponentModel;
 using Syncfusion.Maui.DataGrid;
 using System.Collections.Specialized;
+using System.Diagnostics;
 
 namespace ErgStream.Pages
 {
@@ -63,12 +64,13 @@ namespace ErgStream.Pages
 
         private void ScrollToBottomOfDataGrid()
         {
-            if (viewModel.DataRows.Count > 0)
+            if (viewModel.AutoScrollEnabled && viewModel.DataRows.Count > 0)
             {
-                // Don't scroll right away as the UI hasn't updated
-                Dispatcher.Dispatch(() =>
+                // Delay the scroll to allow the UI to complete its layout pass
+                Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), async () =>
                 {
-                    DataGrid.ScrollToRowIndex(viewModel.DataRows.Count - 1, ScrollToPosition.End, canAnimate: true);
+                    int lastRowIndex = viewModel.DataRows.Count; // - 1 ;
+                    await DataGrid.ScrollToRowIndex(lastRowIndex, ScrollToPosition.End, canAnimate: true);
                 });
             }
         }
