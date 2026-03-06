@@ -69,7 +69,7 @@ namespace ErgStream.Pages
                 // Delay the scroll to allow the UI to complete its layout pass
                 Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(100), async () =>
                 {
-                    int lastRowIndex = viewModel.DataRows.Count; // - 1 ;
+                    int lastRowIndex = DataGrid!.View!.Records.Count; // - 1;
                     await DataGrid.ScrollToRowIndex(lastRowIndex, ScrollToPosition.End, canAnimate: true);
                 });
             }
