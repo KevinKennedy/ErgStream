@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:sfgrid="clr-namespace:Syncfusion.Maui.DataGrid;assembly=Syncfusion.Maui.DataGrid"
              xmlns:controls="clr-namespace:ErgStream.Controls"
+             xmlns:vm="clr-namespace:ErgStream.ViewModels"
              x:Class="ErgStream.Pages.ErgDataStreamPage"
              Title="Erg Data Stream">
     
@@ -101,9 +102,9 @@
               <DataTemplate>
                 <controls:SparkLineView Data="{Binding ForceCurve}"
                                         LineColor="DodgerBlue"
-                                        LineThickness="1.5"
+                                        LineThickness="2"
                                         HeightRequest="30"
-                                        MaxValue="200"
+                                        MaxValue="255"
                                         VerticalOptions="Center"
                                         HorizontalOptions="Start"/>
               </DataTemplate>
@@ -126,6 +127,16 @@
                               Spacing="10"
                               HorizontalOptions="Center"
                               Margin="0,10,0,0">
+            
+            <HorizontalStackLayout RadioButtonGroup.GroupName="ErgDataFilterGroup"
+                                   RadioButtonGroup.SelectedValue="{Binding ErgDataFilter}"
+                                   Spacing="5"
+                                   VerticalOptions="Center">
+                <RadioButton Content="All" 
+                             Value="{x:Static vm:ErgDataFilter.All}"/>
+                <RadioButton Content="Stroke Only" 
+                             Value="{x:Static vm:ErgDataFilter.StrokeOnly}"/>
+            </HorizontalStackLayout>
             
             <Button Text="Clear"
                     Command="{Binding ClearCommand}"

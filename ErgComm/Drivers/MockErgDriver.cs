@@ -16,6 +16,7 @@ namespace ErgComm.Drivers
         private const string MockErgName = "Mock Erg (Test Data)";
         private readonly Random _random = new();
         private int nextStrokeId = 100;
+        private int nextStatusId = 9000;
 
         public Task StartDiscoveryAsync(Action<List<ErgInfo>> ergListCallback, CancellationToken cancellationToken)
         {
@@ -63,25 +64,35 @@ namespace ErgComm.Drivers
                 // Simulate stroke state cycling
                 var strokeState = ((StrokeState)((elapsed * 2) % 5)); // Cycle through states
 
-                var data = new StrokeData
+                var strokeData = new StrokeData
                 {
                     StrokeId = nextStrokeId++,
                     Timestamp = DateTime.UtcNow,
                     ElapsedTime = elapsed,
                     Distance = distance,
-                    //StrokeRate = strokeRate,
-                    //HeartRate = 140 + _random.Next(-10, 10), // 130-150 bpm
-                    //Pace = pace,
                     Power = power,
                     Calories = (int)(elapsed * 10 / 60), // ~10 cal/min
-                    //DragFactor = 110 + _random.Next(-5, 5), // Typical drag factor
-                    //StrokeState = strokeState,
-                    ForceCurve = forceCurve,
-                    //WorkoutState = 1, // WorkoutRowState
-                    //WorkoutType = 0 // JustRowNoSplits
+                     ForceCurve = forceCurve,
                 };
 
-                strokeDataCallback(data);
+                var statusData = new ErgStatus
+                {
+                    StatusId = nextStatusId++,
+                    Timestamp = DateTime.UtcNow,
+                    ElapsedTime = elapsed,
+                    Distance = distance,
+                    StrokeRate = strokeRate,
+                    HeartRate = 140 + _random.Next(-10, 10), // 130-150 bpm
+                    Pace = pace,
+                    AveragePace = pace + _random.Next(-5, 5), // Slight variation
+                    StrokeState = strokeState,
+                    WorkoutState = 1, // WorkoutRowState
+                    WorkoutType = 0 // JustRowNoSplits
+                };
+
+                statusDataCallback(statusData);
+
+                strokeDataCallback(strokeData);
 
                 await Task.Delay(1000, cancellationToken); // Update every 1 second
             }

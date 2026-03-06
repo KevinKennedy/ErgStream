@@ -21,6 +21,7 @@ namespace ErgStream.Pages
             BindingContext = _viewModel;
             
             // Subscribe to property changes
+            _viewModel.PropertyChanging += OnViewModelPropertyChanging;
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
             // Subscribe to DataRows collection changes for auto-scroll
@@ -33,12 +34,25 @@ namespace ErgStream.Pages
             DataGrid.Loaded += OnDataGridLoaded;
         }
 
+        private void OnViewModelPropertyChanging(object? sender, System.ComponentModel.PropertyChangingEventArgs e)
+        {
+            if (e.PropertyName == nameof(ErgDataStreamViewModel.DataRows))
+            {
+                _viewModel.DataRows.CollectionChanged -= OnDataRowsCollectionChanged;
+            }
+        }
+
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ErgDataStreamViewModel.DataText))
             {
                 // Scroll to bottom when DataText changes
                 DataScrollView.ScrollToAsync(DataLabel, ScrollToPosition.End, false);
+            }
+            else if (e.PropertyName == nameof(ErgDataStreamViewModel.DataRows))
+            {
+                _viewModel.DataRows.CollectionChanged += OnDataRowsCollectionChanged;
+                DataGrid.ScrollToRowIndex(_viewModel.DataRows.Count - 1, ScrollToPosition.MakeVisible, canAnimate: true);
             }
         }
 
@@ -47,7 +61,6 @@ namespace ErgStream.Pages
             // Scroll to the last item when new data is added
             if (e.Action == NotifyCollectionChangedAction.Add && _viewModel.DataRows.Count > 0)
             {
-                var lastItem = _viewModel.DataRows[_viewModel.DataRows.Count - 1];
                 DataGrid.ScrollToRowIndex(_viewModel.DataRows.Count - 1, ScrollToPosition.MakeVisible, canAnimate: true);
             }
         }

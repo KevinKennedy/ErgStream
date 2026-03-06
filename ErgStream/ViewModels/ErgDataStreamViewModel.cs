@@ -7,6 +7,12 @@ using System.Text;
 
 namespace ErgStream.ViewModels
 {
+    public enum ErgDataFilter
+    {
+        All,
+        StrokeOnly
+    }
+
     public partial class ErgDataStreamViewModel : ObservableObject, IQueryAttributable
     {
         private readonly ErgCommService _ergCommService;
@@ -24,6 +30,9 @@ namespace ErgStream.ViewModels
 
         [ObservableProperty]
         private string _dataText = string.Empty;
+
+        [ObservableProperty]
+        private ErgDataFilter ergDataFilter = ErgDataFilter.All;
 
         [ObservableProperty]
         private ObservableCollection<ErgDataStreamRow> dataRows = new();
@@ -111,7 +120,10 @@ namespace ErgStream.ViewModels
                     var newRow = new ErgDataStreamRow();
                     newRow.UpdateFromStatus(ergStatus);
                     statusMessages[ergStatus.StatusId] = newRow;
-                    DataRows.Add(newRow);
+                    if (ErgDataFilter == ErgDataFilter.All)
+                    {
+                        DataRows.Add(newRow);
+                    }
                 }
 
                 if (_currentErgStatus == null)
@@ -199,6 +211,31 @@ namespace ErgStream.ViewModels
 
             // Update the displayed text
             DataText = _dataBuilder.ToString();
+        }
+
+        partial void OnErgDataFilterChanged(ErgDataFilter value)
+        {
+            IOrderedEnumerable<ErgDataStreamRow> newDataRowsEnum;
+            if (value == ErgDataFilter.All)
+            {
+                newDataRowsEnum = statusMessages.Values.Concat(strokeMessages.Values).OrderBy(row => row.TimeStamp);
+            }
+            else if (value == ErgDataFilter.StrokeOnly)
+            {
+                newDataRowsEnum = strokeMessages.Values.OrderBy(row => row.TimeStamp);
+            }
+            else
+            {
+                throw new InvalidDataException($"Invalid data filter value {value}");
+            }
+
+            ObservableCollection<ErgDataStreamRow> newDataRows = new();
+            foreach (var row in newDataRowsEnum)
+            {
+                newDataRows.Add(row);
+            }
+
+            DataRows = newDataRows;
         }
 
         [RelayCommand]
