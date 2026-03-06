@@ -28,8 +28,8 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="$placeholder$"
-        Description="$placeholder$"
+        DisplayName="ErgStream"
+        Description="Windows app for streaming rowing data off a Concept2 Row Erg"
         Square150x150Logo="$placeholder$.png"
         Square44x44Logo="$placeholder$.png"
         BackgroundColor="transparent">
@@ -41,6 +41,7 @@
 
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
+    <DeviceCapability Name="bluetooth"/>
   </Capabilities>
 
 </Package>

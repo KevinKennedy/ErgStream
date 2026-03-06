@@ -4,6 +4,7 @@
              xmlns:sfgrid="clr-namespace:Syncfusion.Maui.DataGrid;assembly=Syncfusion.Maui.DataGrid"
              xmlns:controls="clr-namespace:ErgStream.Controls"
              xmlns:vm="clr-namespace:ErgStream.ViewModels"
+             x:DataType="vm:ErgDataStreamViewModel"
              x:Class="ErgStream.Pages.ErgDataStreamPage"
              Title="Erg Data Stream">
    
@@ -90,7 +91,7 @@
                                           HeaderText="Force Curve"
                                           Width="380">
             <sfgrid:DataGridTemplateColumn.CellTemplate>
-              <DataTemplate>
+              <DataTemplate x:DataType="vm:ErgDataStreamRow">
                 <controls:SparkLineView Data="{Binding ForceCurve}"
                                         LineColor="DodgerBlue"
                                         LineThickness="2"

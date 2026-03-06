@@ -3,7 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="ErgStream.Pages.MainPage"
              xmlns:models="clr-namespace:ErgComm.Models;assembly=ErgComm"
-             Title="Erg Connection">
+             xmlns:pages="clr-namespace:ErgStream.Pages;assembly=ErgStream"
+             Title="Erg Connection"
+             x:DataType="pages:MainPage">
     
     <Grid Padding="10">
         <CollectionView ItemsSource="{Binding Items}"
