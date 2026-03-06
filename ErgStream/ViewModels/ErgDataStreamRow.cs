@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using ErgComm.Models;
+using System.Text;
 
 namespace ErgStream.ViewModels
 {
@@ -98,8 +99,14 @@ namespace ErgStream.ViewModels
         [ObservableProperty]
         private int[]? forceCurve;
 
+        public bool IsStrokeData { get; private set; } = false;
+
+        public bool IsStatusData { get; private set; } = false;
+
         public void UpdateFromStatus(ErgStatus status)
         {
+            IsStatusData = true;
+
             TimeStamp = status.Timestamp;
             ElapsedTime = status.ElapsedTime;
             Distance = status.Distance;
@@ -116,12 +123,79 @@ namespace ErgStream.ViewModels
 
         public void UpdateFromStroke(StrokeData strokeData)
         {
+            IsStrokeData = true;
+
             TimeStamp = strokeData.Timestamp;
             ElapsedTime = strokeData.ElapsedTime;
             Distance = strokeData.Distance;
             Power = strokeData.Power;
             Calories = strokeData.Calories;
             ForceCurve = strokeData.ForceCurve;
+        }
+
+        public static string GetCsvHeader(bool includeStatusFields, bool includeStrokeFields)
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.Append("Timestamp,ElapsedTime,Distance,");
+            if (includeStatusFields)
+            {
+                sb.Append("WorkoutType,WorkoutState,StrokeState,DragFactor,Speed,StrokeRate,HeartRate,Pace,AveragePace,");
+            }
+            if (includeStrokeFields)
+            {
+                sb.Append("Power,Calories,ForceCurve");
+            }
+            return sb.ToString();
+        }
+
+        public string ToCsv(bool includeStatusFields, bool includeStrokeFields)
+        {
+            StringBuilder sb = new StringBuilder();
+
+            // Format that Excel will recognize
+            sb.Append(TimeStamp.ToString("yyyy-MM-dd HH:mm:ss"));
+            sb.Append(',');
+            sb.Append(ElapsedTime?.ToString("F2") ?? "");
+            sb.Append(',');
+            sb.Append(Distance?.ToString("F2") ?? "");
+            sb.Append(',');
+
+            if (includeStatusFields)
+            {
+                sb.Append(WorkoutType?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(WorkoutState?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(StrokeState?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(DragFactor?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(Speed?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(StrokeRate?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(HeartRate?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(Pace?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(AveragePace?.ToString() ?? "");
+            }
+            if (includeStrokeFields)
+            {
+                sb.Append(Power?.ToString() ?? "");
+                sb.Append(',');
+                sb.Append(Calories?.ToString() ?? "");
+                sb.Append(',');
+                if (ForceCurve != null && ForceCurve.Length > 0)
+                {
+                    sb.Append(string.Join(",", ForceCurve)); // Use pipe as separator for force curve points
+                }
+                else
+                {
+                    sb.Append("");
+                }
+            }
+            return sb.ToString();
         }
     }
 }

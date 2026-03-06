@@ -10,26 +10,22 @@ namespace ErgStream.ViewModels
     public enum ErgDataFilter
     {
         All,
-        StrokeOnly
+        StrokeOnly,
+        StrokeWithPowerOnly
     }
 
     public partial class ErgDataStreamViewModel : ObservableObject, IQueryAttributable
     {
-        private readonly ErgCommService _ergCommService;
-        private CancellationTokenSource? _connectionCts;
-        private readonly StringBuilder _dataBuilder;
-        
-        private ErgStatus? _currentErgStatus;
-        private StrokeData? _currentStroke;
+        private const string ErgDataFilterPreferenceKey = "ErgDataStream_DataFilter";
+
+        private readonly ErgCommService ergCommService;
+        private CancellationTokenSource? connectionCancellationTokenSource;
 
         [ObservableProperty]
-        private string _ergId = string.Empty;
+        private string ergId = string.Empty;
 
         [ObservableProperty]
-        private bool _isConnecting;
-
-        [ObservableProperty]
-        private string _dataText = string.Empty;
+        private bool isConnecting;
 
         [ObservableProperty]
         private ErgDataFilter ergDataFilter = ErgDataFilter.All;
@@ -42,8 +38,22 @@ namespace ErgStream.ViewModels
 
         public ErgDataStreamViewModel(ErgCommService ergCommService)
         {
-            _ergCommService = ergCommService;
-            _dataBuilder = new StringBuilder();
+            this.ergCommService = ergCommService;
+            RestoreErgDataFilter();
+        }
+
+        private void RestoreErgDataFilter()
+        {
+            var savedFilter = Preferences.Get(ErgDataFilterPreferenceKey, nameof(ErgDataFilter.All));
+            if (Enum.TryParse<ErgDataFilter>(savedFilter, out var filter))
+            {
+                ErgDataFilter = filter;
+            }
+        }
+
+        private void SaveErgDataFilter()
+        {
+            Preferences.Set(ErgDataFilterPreferenceKey, ErgDataFilter.ToString());
         }
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
@@ -65,11 +75,11 @@ namespace ErgStream.ViewModels
 
         private async Task ConnectToErgAsync(string ergId)
         {
-            if (_connectionCts != null)
+            if (connectionCancellationTokenSource != null)
             {
-                _connectionCts.Cancel();
-                _connectionCts.Dispose();
-                _connectionCts = null;
+                connectionCancellationTokenSource.Cancel();
+                connectionCancellationTokenSource.Dispose();
+                connectionCancellationTokenSource = null;
             }
 
             if (string.IsNullOrEmpty(ergId))
@@ -81,13 +91,13 @@ namespace ErgStream.ViewModels
 
             try
             {
-                _connectionCts = new CancellationTokenSource();
+                connectionCancellationTokenSource = new CancellationTokenSource();
 
-                await _ergCommService.ConnectToErgAsync(
+                await ergCommService.ConnectToErgAsync(
                     ergId,
                     OnErgStatusDataReceived,
                     OnErgStrokeDataReceived,
-                    _connectionCts.Token);
+                    connectionCancellationTokenSource.Token);
             }
             catch (OperationCanceledException)
             {
@@ -120,35 +130,9 @@ namespace ErgStream.ViewModels
                     var newRow = new ErgDataStreamRow();
                     newRow.UpdateFromStatus(ergStatus);
                     statusMessages[ergStatus.StatusId] = newRow;
-                    if (ErgDataFilter == ErgDataFilter.All)
+                    if (IsVisible(newRow))
                     {
                         DataRows.Add(newRow);
-                    }
-                }
-
-                if (_currentErgStatus == null)
-                {
-                    _currentErgStatus = ergStatus;
-                }
-                else
-                {
-                    if (_currentErgStatus.StatusId == ergStatus.StatusId)
-                    {
-                        // This is an update to the current status
-                        _currentErgStatus = ergStatus;
-
-                        if (_currentErgStatus.IsComplete())
-                        {
-                            WriteDataRow(_currentErgStatus);
-                            _currentErgStatus = null;
-                        }
-                    }
-                    else
-                    {
-                        // We've received a new status ID, so write out the previous, likely incomplete status
-                        WriteDataRow(_currentErgStatus);
-
-                        _currentErgStatus = ergStatus;
                     }
                 }
             });
@@ -162,72 +146,37 @@ namespace ErgStream.ViewModels
 
                 if (strokeMessages.TryGetValue(strokeData.StrokeId, out var existingRow))
                 {
+                    bool wasVisible = IsVisible(existingRow);
+
                     existingRow.UpdateFromStroke(strokeData);
+
+                    if (wasVisible && !IsVisible(existingRow))
+                    {
+                        DataRows.Remove(existingRow);
+                    }
+                    else if (!wasVisible && IsVisible(existingRow))
+                    {
+                        DataRows.Add(existingRow);
+                    }
                 }
                 else
                 {
                     var newRow = new ErgDataStreamRow();
                     newRow.UpdateFromStroke(strokeData);
                     strokeMessages[strokeData.StrokeId] = newRow;
-                    DataRows.Add(newRow);
-                }
-
-                if (_currentStroke == null)
-                {
-                    _currentStroke = strokeData;
-                }
-                else
-                {
-                    if (_currentStroke.StrokeId == strokeData.StrokeId)
+                    if (IsVisible(newRow))
                     {
-                        // This is an update to the current stroke
-                        _currentStroke = strokeData;
-
-                        if (_currentStroke.IsComplete())
-                        {
-                            WriteDataRow(_currentStroke);
-                            _currentStroke = null;
-                        }
-                    }
-                    else
-                    {
-                        // We've received a new stroke ID, so write out the previous, likely incomplete stroke
-                        // Don't write this out if we haven't received both stroke state messages. Force curve is optional.
-                        if (_currentStroke.IsCompleteMinusForceCurve())
-                        {
-                            WriteDataRow(_currentStroke);
-                        }
-
-                        _currentStroke = strokeData;
+                        DataRows.Add(newRow);
                     }
                 }
             });
         }
 
-        private void WriteDataRow(object data)
-        {
-            System.Diagnostics.Debug.WriteLine(data.ToString());
-            _dataBuilder.AppendLine(data.ToString());
-
-            // Update the displayed text
-            DataText = _dataBuilder.ToString();
-        }
-
         partial void OnErgDataFilterChanged(ErgDataFilter value)
         {
-            IOrderedEnumerable<ErgDataStreamRow> newDataRowsEnum;
-            if (value == ErgDataFilter.All)
-            {
-                newDataRowsEnum = statusMessages.Values.Concat(strokeMessages.Values).OrderBy(row => row.TimeStamp);
-            }
-            else if (value == ErgDataFilter.StrokeOnly)
-            {
-                newDataRowsEnum = strokeMessages.Values.OrderBy(row => row.TimeStamp);
-            }
-            else
-            {
-                throw new InvalidDataException($"Invalid data filter value {value}");
-            }
+            SaveErgDataFilter();
+
+            IEnumerable<ErgDataStreamRow> newDataRowsEnum = statusMessages.Values.Concat(strokeMessages.Values).OrderBy(row => row.TimeStamp).Where(row => IsVisible(row));
 
             ObservableCollection<ErgDataStreamRow> newDataRows = new();
             foreach (var row in newDataRowsEnum)
@@ -239,31 +188,80 @@ namespace ErgStream.ViewModels
         }
 
         [RelayCommand]
-        private void Clear()
+        private async Task ClearAsync()
         {
-            _dataBuilder.Clear();
-            DataText = string.Empty;
+            bool confirm = await Shell.Current.DisplayAlert(
+                "Clear Data",
+                "Are you sure you want to clear all data? Any data you haven't copied will be permanently deleted.",
+                "Yes",
+                "No");
+
+            if (!confirm)
+            {
+                return;
+            }
+
+            statusMessages.Clear();
+            strokeMessages.Clear();
+            DataRows.Clear();
         }
 
         [RelayCommand]
         private async Task CopyAsync()
         {
-            if (_dataBuilder.Length > 0)
-            {
-                await Clipboard.SetTextAsync(_dataBuilder.ToString());
-                await AppShell.DisplayToastAsync("Data copied to clipboard");
-            }
-            else
+            if (DataRows.Count == 0)
             {
                 await Shell.Current.DisplayAlert("No Data", "There is no data to copy.", "OK");
+                return;
             }
+
+            bool includeStatus = false;
+            bool includeStrokes = false;
+            if (ErgDataFilter == ErgDataFilter.All)
+            {
+                includeStatus = true;
+                includeStrokes = true;
+            }
+            else if (ErgDataFilter == ErgDataFilter.StrokeOnly || ErgDataFilter == ErgDataFilter.StrokeWithPowerOnly)
+            {
+                includeStrokes = true;
+            }
+
+            StringBuilder sb = new();
+            sb.AppendLine(ErgDataStreamRow.GetCsvHeader(includeStatus, includeStrokes));
+            foreach (ErgDataStreamRow row in DataRows)
+            {
+                sb.AppendLine(row.ToCsv(includeStatus, includeStrokes));
+            }
+
+            await Clipboard.SetTextAsync(sb.ToString());
         }
 
         public void Disconnect()
         {
-            _connectionCts?.Cancel();
-            _connectionCts?.Dispose();
-            _connectionCts = null;
+            connectionCancellationTokenSource?.Cancel();
+            connectionCancellationTokenSource?.Dispose();
+            connectionCancellationTokenSource = null;
+        }
+
+        private bool IsVisible(ErgDataStreamRow row)
+        {
+            if (ErgDataFilter == ErgDataFilter.All)
+            {
+                return true;
+            }
+            else if (ErgDataFilter == ErgDataFilter.StrokeOnly)
+            {
+                return row.IsStrokeData;
+            }
+            else if (ErgDataFilter == ErgDataFilter.StrokeWithPowerOnly)
+            {
+                return row.IsStrokeData && row.Power.HasValue;
+            }
+            else
+            {
+                throw new InvalidDataException($"Invalid data filter value {ErgDataFilter}");
+            }
         }
     }
 }

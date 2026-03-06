@@ -17,6 +17,7 @@ namespace ErgComm.Drivers
         private readonly Random _random = new();
         private int nextStrokeId = 100;
         private int nextStatusId = 9000;
+        private bool nextStrokeComplete = false;
 
         public Task StartDiscoveryAsync(Action<List<ErgInfo>> ergListCallback, CancellationToken cancellationToken)
         {
@@ -72,7 +73,7 @@ namespace ErgComm.Drivers
                     Distance = distance,
                     Power = power,
                     Calories = (int)(elapsed * 10 / 60), // ~10 cal/min
-                     ForceCurve = forceCurve,
+                    ForceCurve = forceCurve,
                 };
 
                 var statusData = new ErgStatus
@@ -89,6 +90,15 @@ namespace ErgComm.Drivers
                     WorkoutState = 1, // WorkoutRowState
                     WorkoutType = 0 // JustRowNoSplits
                 };
+
+                if (!nextStrokeComplete)
+                {
+                    strokeData.Distance = null;
+                    strokeData.Power = null;
+                    strokeData.Calories = null;
+                    strokeData.ForceCurve = null;
+                }
+                nextStrokeComplete = !nextStrokeComplete; // Alternate between complete and incomplete stroke data
 
                 statusDataCallback(statusData);
 

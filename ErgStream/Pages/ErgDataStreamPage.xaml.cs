@@ -11,57 +11,65 @@ namespace ErgStream.Pages
     public partial class ErgDataStreamPage : ContentPage
     {
         private const string ColumnWidthsPreferenceKey = "ErgDataGrid_ColumnWidths";
-        private readonly ErgDataStreamViewModel _viewModel;
+        private readonly ErgDataStreamViewModel viewModel;
 
         public ErgDataStreamPage(ErgDataStreamViewModel viewModel)
         {
             InitializeComponent();
             
-            _viewModel = viewModel;
-            BindingContext = _viewModel;
+            this.viewModel = viewModel;
+            BindingContext = this.viewModel;
             
             // Subscribe to property changes
-            _viewModel.PropertyChanging += OnViewModelPropertyChanging;
-            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            this.viewModel.PropertyChanging += OnViewModelPropertyChanging;
+            this.viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
             // Subscribe to DataRows collection changes for auto-scroll
-            _viewModel.DataRows.CollectionChanged += OnDataRowsCollectionChanged;
+            this.viewModel.DataRows.CollectionChanged += OnDataRowsCollectionChanged;
 
             // Subscribe to column resizing event
             DataGrid.ColumnResizing += OnDataGridColumnResized;
             
             // Restore column widths after columns are generated
             DataGrid.Loaded += OnDataGridLoaded;
+
+
         }
 
         private void OnViewModelPropertyChanging(object? sender, System.ComponentModel.PropertyChangingEventArgs e)
         {
             if (e.PropertyName == nameof(ErgDataStreamViewModel.DataRows))
             {
-                _viewModel.DataRows.CollectionChanged -= OnDataRowsCollectionChanged;
+                viewModel.DataRows.CollectionChanged -= OnDataRowsCollectionChanged;
             }
         }
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ErgDataStreamViewModel.DataText))
+            if (e.PropertyName == nameof(ErgDataStreamViewModel.DataRows))
             {
-                // Scroll to bottom when DataText changes
-                DataScrollView.ScrollToAsync(DataLabel, ScrollToPosition.End, false);
-            }
-            else if (e.PropertyName == nameof(ErgDataStreamViewModel.DataRows))
-            {
-                _viewModel.DataRows.CollectionChanged += OnDataRowsCollectionChanged;
-                DataGrid.ScrollToRowIndex(_viewModel.DataRows.Count - 1, ScrollToPosition.MakeVisible, canAnimate: true);
+                viewModel.DataRows.CollectionChanged += OnDataRowsCollectionChanged;
+                ScrollToBottomOfDataGrid();
             }
         }
 
         private void OnDataRowsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            // Scroll to the last item when new data is added
-            if (e.Action == NotifyCollectionChangedAction.Add && _viewModel.DataRows.Count > 0)
+            if (e.Action == NotifyCollectionChangedAction.Add && viewModel.DataRows.Count > 0)
             {
-                DataGrid.ScrollToRowIndex(_viewModel.DataRows.Count - 1, ScrollToPosition.MakeVisible, canAnimate: true);
+                ScrollToBottomOfDataGrid();
+            }
+        }
+
+        private void ScrollToBottomOfDataGrid()
+        {
+            if (viewModel.DataRows.Count > 0)
+            {
+                // Don't scroll right away as the UI hasn't updated
+                Dispatcher.Dispatch(() =>
+                {
+                    DataGrid.ScrollToRowIndex(viewModel.DataRows.Count - 1, ScrollToPosition.End, canAnimate: true);
+                });
             }
         }
 
@@ -156,8 +164,8 @@ namespace ErgStream.Pages
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-            _viewModel.DataRows.CollectionChanged -= OnDataRowsCollectionChanged;
+            this.viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            this.viewModel.DataRows.CollectionChanged -= OnDataRowsCollectionChanged;
             
             if (BindingContext is ErgDataStreamViewModel viewModel)
             {

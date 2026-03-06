@@ -36,11 +36,7 @@ namespace ErgStream.Pages
                         // Update UI on main thread
                         MainThread.BeginInvokeOnMainThread(() =>
                         {
-                            Items.Clear();
-                            foreach (var erg in ergList)
-                            {
-                                Items.Add(erg);
-                            }
+                            UpdateItemsInPlace(ergList);
                         });
                     },
                     _discoveryCts.Token,
@@ -49,6 +45,41 @@ namespace ErgStream.Pages
             catch (OperationCanceledException)
             {
                 // Expected when page disappears
+            }
+        }
+
+        // AI code, not the best...
+        private void UpdateItemsInPlace(IEnumerable<ErgInfo> ergList)
+        {
+            var newItems = ergList.ToDictionary(e => e.Id);
+            var existingIds = Items.Select(e => e.Id).ToHashSet();
+
+            // Remove items that no longer exist
+            for (int i = Items.Count - 1; i >= 0; i--)
+            {
+                if (!newItems.ContainsKey(Items[i].Id))
+                {
+                    Items.RemoveAt(i);
+                }
+            }
+
+            // Update existing items and add new ones
+            foreach (var newErg in newItems.Values)
+            {
+                var existingItem = Items.FirstOrDefault(e => e.Id == newErg.Id);
+                if (existingItem != null)
+                {
+                    // Update existing item properties
+                    existingItem.Name = newErg.Name;
+                    existingItem.SignalStrength = newErg.SignalStrength;
+                    existingItem.ErgType = newErg.ErgType;
+                    existingItem.IsMockErg = newErg.IsMockErg;
+                }
+                else
+                {
+                    // Add new item
+                    Items.Add(newErg);
+                }
             }
         }
 
