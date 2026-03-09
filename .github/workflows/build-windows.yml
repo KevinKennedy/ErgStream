@@ -16,13 +16,13 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.100'
+        global-json-file: global.json
     
     - name: Display .NET info
       run: dotnet --info
       
     - name: Install .NET MAUI workload
-      run: dotnet workload install maui --source https://api.nuget.org/v3/index.json
+      run: dotnet workload install maui
       
     - name: Generate appsettings.json from template
       shell: pwsh
