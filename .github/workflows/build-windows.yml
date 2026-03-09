@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-2022  # Use Windows 2022 instead of latest
     
     steps:
     - name: Checkout code
@@ -16,13 +16,13 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
+        dotnet-version: '9.0.100'  # Use the RTM version
     
     - name: Display .NET info
       run: dotnet --info
       
     - name: Install .NET MAUI workload
-      run: dotnet workload install maui
+      run: dotnet workload install maui --skip-manifest-update
       
     - name: Generate appsettings.json from template
       shell: pwsh
@@ -43,7 +43,6 @@ jobs:
           -p:PublishSingleFile=true `
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -p:PublishTrimmed=false `
-          -p:RestorePackagesPath=packages `
           -o ./publish
       
     - name: Get version info
