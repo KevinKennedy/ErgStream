@@ -1,0 +1,89 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Install .NET MAUI workload
+      run: dotnet workload install maui
+      
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Update appsettings.json with license key
+      shell: pwsh
+      run: |
+        $appsettingsPath = "ErgStream/appsettings.json"
+        $json = Get-Content $appsettingsPath -Raw | ConvertFrom-Json
+        $json.Syncfusion.LicenseKey = "${{ secrets.SYNCFUSION_LICENSE_KEY }}"
+        $json | ConvertTo-Json -Depth 10 | Set-Content $appsettingsPath
+      
+    - name: Build and Publish Windows executable
+      run: |
+        dotnet publish ErgStream/ErgStream.csproj `
+          -f net9.0-windows10.0.19041.0 `
+          -c Release `
+          -r win-x64 `
+          --self-contained true `
+          -p:PublishSingleFile=true `
+          -p:IncludeNativeLibrariesForSelfExtract=true `
+          -p:PublishTrimmed=false `
+          -o ./publish
+      
+    - name: Get version info
+      id: version
+      shell: pwsh
+      run: |
+        $date = Get-Date -Format "yyyy-MM-dd"
+        $shortSha = "${{ github.sha }}".Substring(0,7)
+        echo "TAG_NAME=v1.0-$date-$shortSha" >> $env:GITHUB_OUTPUT
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.version.outputs.TAG_NAME }}
+        release_name: Windows Build ${{ steps.version.outputs.TAG_NAME }}
+        draft: false
+        prerelease: false
+        body: |
+          Automated Windows build from commit ${{ github.sha }}
+          
+          ## Installation
+          1. Download `ErgStream.exe` below
+          2. Double-click to run (Windows may show a security warning - click "More info" then "Run anyway")
+          
+          No .NET installation required - all dependencies are included.
+        
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./publish/ErgStream.exe
+        asset_name: ErgStream.exe
+        asset_content_type: application/octet-stream
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-build
+        path: ./publish/
+        retention-days: 30
