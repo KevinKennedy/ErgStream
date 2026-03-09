@@ -27,7 +27,7 @@ jobs:
     - name: Update appsettings.json with license key
       shell: pwsh
       run: |
-        $appsettingsPath = "ErgStream/appsettings.json"
+        $appsettingsPath = "appsettings.json"
         $json = Get-Content $appsettingsPath -Raw | ConvertFrom-Json
         $json.Syncfusion.LicenseKey = "${{ secrets.SYNCFUSION_LICENSE_KEY }}"
         $json | ConvertTo-Json -Depth 10 | Set-Content $appsettingsPath
