@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2022  # Use Windows 2022 instead of latest
+    runs-on: windows-latest
     
     steps:
     - name: Checkout code
@@ -16,13 +16,16 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.100'  # Use the RTM version
+        dotnet-version: '9.0.x'
     
     - name: Display .NET info
       run: dotnet --info
       
     - name: Install .NET MAUI workload
-      run: dotnet workload install maui --skip-manifest-update
+      run: dotnet workload install maui
+
+    - name: Restore dependencies
+      run: dotnet restore
       
     - name: Generate appsettings.json from template
       shell: pwsh
@@ -33,18 +36,25 @@ jobs:
         $json.Syncfusion.LicenseKey = "${{ secrets.SYNCFUSION_LICENSE_KEY }}"
         $json | ConvertTo-Json -Depth 10 | Set-Content $outputPath
       
+    - name: Build MAUI Windows
+      run: |
+        dotnet build ErgStream/ErgStream.csproj `
+          -c Release `
+          -f net9.0-windows10.0.19041.0 `
+          -r win-x64 `
+          --self-contained true
+
     - name: Build and Publish Windows executable
       run: |
         dotnet publish ErgStream/ErgStream.csproj `
           -f net9.0-windows10.0.19041.0 `
           -c Release `
-          -r win-x64 `
-          --self-contained true `
           -p:PublishSingleFile=true `
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -p:PublishTrimmed=false `
           -o ./publish
-      
+      # run: dotnet publish YourMauiApp.csproj -c Release -f net9.0-windows10.0.19041.0 -o ./artifacts
+
     - name: Get version info
       id: version
       shell: pwsh
