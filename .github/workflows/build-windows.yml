@@ -17,13 +17,9 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-        dotnet-quality: 'ga'
       
     - name: Install .NET MAUI workload
       run: dotnet workload install maui
-      
-    - name: Restore dependencies
-      run: dotnet restore
       
     - name: Generate appsettings.json from template
       shell: pwsh
@@ -44,7 +40,6 @@ jobs:
           -p:PublishSingleFile=true `
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -p:PublishTrimmed=false `
-          -p:RuntimeIdentifier=win-x64 `
           -o ./publish
       
     - name: Get version info
