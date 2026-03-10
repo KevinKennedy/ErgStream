@@ -8,7 +8,9 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-    
+    permissions:
+      contents: write
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -16,7 +18,7 @@ jobs:
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '10.0.200' # using 10.0.x seems to be broken on GitHub actions right now
+        dotnet-version: '10.0.x'
     
     - name: Display .NET info
       run: dotnet --info
