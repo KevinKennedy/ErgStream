@@ -37,11 +37,20 @@ jobs:
         $json | ConvertTo-Json -Depth 10 | Set-Content $outputPath
       
     - name: Build and Publish Windows executable
+      env:
+        SYNCFUSION_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
       run: |
+        # Replace the Syncfusion licence key constant in the source file
+        $sourceFile = "ErgStream/Configuration/AppSecrets.cs"
+        $content = Get-Content $sourceFile -Raw
+        $content = $content -replace 'SYNCFUSION_WILL_BE_REPLACED_BY_BUILD', $env:SYNCFUSION_KEY
+        Set-Content $sourceFile $content
+        
         dotnet publish ErgStream/ErgStream.csproj `
           -f net10.0-windows10.0.19041.0 `
           -c Release `
           -r win-x64 `
+          --self-contained true `
           -p:PublishSingleFile=true `
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -p:PublishTrimmed=false `

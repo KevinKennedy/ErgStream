@@ -7,6 +7,7 @@ using SkiaSharp.Views.Maui.Controls.Hosting;
 using Syncfusion.Licensing;
 using Syncfusion.Maui.Core.Hosting;
 using Syncfusion.Maui.Toolkit.Hosting;
+using ErgStream.Configuration;
 
 namespace ErgStream
 {
@@ -53,7 +54,8 @@ namespace ErgStream
             var app = builder.Build();
 
             // Register Syncfusion license from configuration
-            var licenseKey = app.Configuration["Syncfusion:LicenseKey"];
+            var licenseKey = AppSecrets.SyncfusionLicenseKey; // for the product build
+            licenseKey ??= app.Configuration["Syncfusion:LicenseKey"]; // For developers
             if (!string.IsNullOrEmpty(licenseKey))
             {
                 SyncfusionLicenseProvider.RegisterLicense(licenseKey);
