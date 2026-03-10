@@ -45,6 +45,7 @@ jobs:
           -p:PublishSingleFile=true `
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -p:PublishTrimmed=false `
+          -p:UseMonoRuntime=false `
           -o ./publish
 
     - name: Get version info
