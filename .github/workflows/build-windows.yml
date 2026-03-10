@@ -36,24 +36,16 @@ jobs:
         $json.Syncfusion.LicenseKey = "${{ secrets.SYNCFUSION_LICENSE_KEY }}"
         $json | ConvertTo-Json -Depth 10 | Set-Content $outputPath
       
-    - name: Build MAUI Windows
-      run: |
-        dotnet build ErgStream/ErgStream.csproj `
-          -c Release `
-          -f net10.0-windows10.0.19041.0 `
-          -r win-x64 `
-          --self-contained true
-
     - name: Build and Publish Windows executable
       run: |
         dotnet publish ErgStream/ErgStream.csproj `
           -f net10.0-windows10.0.19041.0 `
           -c Release `
+          -r win-x64 `
           -p:PublishSingleFile=true `
           -p:IncludeNativeLibrariesForSelfExtract=true `
           -p:PublishTrimmed=false `
           -o ./publish
-      # run: dotnet publish YourMauiApp.csproj -c Release -f net9.0-windows10.0.19041.0 -o ./artifacts
 
     - name: Get version info
       id: version
