@@ -27,15 +27,6 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
       
-    - name: Generate appsettings.json from template
-      shell: pwsh
-      run: |
-        $templatePath = "ErgStream/appsettings.template.json"
-        $outputPath = "ErgStream/appsettings.json"
-        $json = Get-Content $templatePath -Raw | ConvertFrom-Json
-        $json.Syncfusion.LicenseKey = "${{ secrets.SYNCFUSION_LICENSE_KEY }}"
-        $json | ConvertTo-Json -Depth 10 | Set-Content $outputPath
-      
     - name: Build and Publish Windows executable
       env:
         SYNCFUSION_KEY: ${{ secrets.SYNCFUSION_LICENSE_KEY }}
