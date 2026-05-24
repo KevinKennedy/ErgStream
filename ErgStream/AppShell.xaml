@@ -20,6 +20,12 @@
         ContentTemplate="{DataTemplate pages:ErgDataStreamPage}"
         Route="datastream" />
 
+    <ShellContent
+        Title="Erg Program"
+        Icon="{StaticResource IconProjects}"
+        ContentTemplate="{DataTemplate pages:ErgProgramPage}"
+        Route="ergprogram" />
+
     <Shell.FlyoutFooter>
         <Grid Padding="15">
             <sf:SfSegmentedControl x:Name="ThemeSegmentedControl" 

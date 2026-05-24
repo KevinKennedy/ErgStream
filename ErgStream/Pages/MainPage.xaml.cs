@@ -98,8 +98,10 @@ namespace ErgStream.Pages
             if (e.CurrentSelection.FirstOrDefault() is ErgInfo selectedErg)
             {
                 // Navigate using absolute route with ///
-                await Shell.Current.GoToAsync($"///datastream?ergId={selectedErg.Id}");
                 
+                //await Shell.Current.GoToAsync($"///datastream?ergId={selectedErg.Id}");
+                await Shell.Current.GoToAsync($"///ergprogram?ergId={selectedErg.Id}");
+
                 // Deselect the item
                 ((CollectionView)sender).SelectedItem = null;
             }
