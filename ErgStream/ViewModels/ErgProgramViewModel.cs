@@ -34,10 +34,8 @@ namespace ErgStream.ViewModels
 
     public partial class ErgProgramViewModel : ObservableObject, IQueryAttributable
     {
-        private readonly ErgCommService ergCommService;
-        private CancellationTokenSource? connectionCancellationTokenSource;
 
-        private ErgProgramInterval[] ergProgramIntervals = new[]
+        private static readonly ErgProgramInterval[] ergProgramIntervals = new[]
         {
             new ErgProgramInterval { Title = "Build to max effort", Duration = TimeSpan.FromSeconds(3), IntervalType = ErgProgramIntervalType.BuildToMaxEffort },
             new ErgProgramInterval { Title = "Max effort 1", Duration = TimeSpan.FromSeconds(10), IntervalType = ErgProgramIntervalType.MaxEffort },
@@ -59,6 +57,10 @@ namespace ErgStream.ViewModels
             new ErgProgramInterval { Title = "Cool-down", Duration = TimeSpan.FromMinutes(2), IntervalType = ErgProgramIntervalType.CoolDown }
         };
 
+        private readonly ErgCommService ergCommService;
+        private readonly IBeepService? beepService;
+
+        private CancellationTokenSource? connectionCancellationTokenSource;
         private CancellationTokenSource? ergProgramCancellationTokenSource;
         private Dictionary<int, ErgDataStreamRow> statusMessages = new();
         private Dictionary<int, ErgDataStreamRow> strokeMessages = new();
@@ -85,14 +87,18 @@ namespace ErgStream.ViewModels
         private ErgProgramIntervalType? intervalType;
 
         [ObservableProperty]
+        private Color? indicatorColor = Colors.Transparent;
+
+        [ObservableProperty]
         private TimeSpan? pace;
 
         [ObservableProperty]
         private double? strokeRate;
 
-        public ErgProgramViewModel(ErgCommService ergCommService)
+        public ErgProgramViewModel(ErgCommService ergCommService, IBeepService? beepService = null)
         {
             this.ergCommService = ergCommService;
+            this.beepService = beepService;
         }
 
         public void ApplyQueryAttributes(IDictionary<string, object> query)
@@ -218,12 +224,16 @@ namespace ErgStream.ViewModels
 
                 foreach (var currentErgProgramInterval in ergProgramIntervals)
                 {
-                    DateTime intervalStartTime = DateTime.UtcNow;
-                    DateTime intervalEndTime = intervalStartTime + currentErgProgramInterval.Duration;
-                    UpdateDisplayMembers(currentErgProgramInterval.Duration,  currentErgProgramInterval.Title, currentErgProgramInterval.IntervalType, null, null);
                     DateTime now = DateTime.UtcNow;
+                    DateTime intervalEndTime = now + currentErgProgramInterval.Duration;
 
-                    if(currentErgProgramInterval.IntervalType == ErgProgramIntervalType.MaxEffort)
+                    // fudge "now" so that we don't show the full duration at the start. Showing the full duration
+                    // will look like a UI glitch because it only lasts for one tick.
+                    now += TimeSpan.FromMilliseconds(1);
+                    UpdateDisplayMembers(intervalEndTime - now,  currentErgProgramInterval.Title, currentErgProgramInterval.IntervalType, null, null);
+                    int currentIntervalSecond = currentErgProgramInterval.Duration.Seconds;
+
+                    if (currentErgProgramInterval.IntervalType == ErgProgramIntervalType.MaxEffort)
                     {
                         StartPowerRecording();
                     }
@@ -232,7 +242,14 @@ namespace ErgStream.ViewModels
                     {
                         TimeSpan? pace = (currentStatus != null && currentStatus.Pace != null) ? TimeSpan.FromSeconds(currentStatus.Pace.Value) : null;
                         double? strokeRate = currentStatus != null ? currentStatus.StrokeRate : null;
-                        UpdateDisplayMembers(intervalEndTime - now, currentErgProgramInterval.Title, currentErgProgramInterval.IntervalType, pace, strokeRate);
+                        TimeSpan intervalTimeRemaining = intervalEndTime - now;
+                        int newIntervalSecond = intervalTimeRemaining.Seconds;
+                        if (newIntervalSecond != currentIntervalSecond)
+                        {
+                            DoBeep(currentErgProgramInterval.IntervalType, newIntervalSecond);
+                            currentIntervalSecond = newIntervalSecond;
+                        }
+                        UpdateDisplayMembers(intervalTimeRemaining, currentErgProgramInterval.Title, currentErgProgramInterval.IntervalType, pace, strokeRate);
                         await ergProgramTickTimer.WaitForNextTickAsync(token);
                         now = DateTime.UtcNow;
                     }
@@ -241,9 +258,6 @@ namespace ErgStream.ViewModels
                     {
                         EndPowerRecording(currentErgProgramInterval.Title);
                     }
-
-
-                    IntervalTimeRemaining = TimeSpan.Zero;
                 }
 
                 UpdateState(ErgProgramState.Completed);
@@ -272,7 +286,51 @@ namespace ErgStream.ViewModels
                     IntervalType = intervalType;
                     Pace = pace;
                     StrokeRate = strokeRate;
+                    IndicatorColor = intervalType switch
+                    {
+                        ErgProgramIntervalType.BuildToMaxEffort => Colors.Yellow,
+                        ErgProgramIntervalType.MaxEffort => Colors.Green,
+                        ErgProgramIntervalType.Recovery => Colors.Red,
+                        ErgProgramIntervalType.CoolDown => Colors.Red,
+                        _ => Colors.Transparent
+                    };
                 });
+            }
+        }
+
+        private void DoBeep(ErgProgramIntervalType intervalType, int newIntervalSecond)
+        {
+            if (intervalType == ErgProgramIntervalType.BuildToMaxEffort)
+            {
+                if (newIntervalSecond <= 2 && newIntervalSecond >= 0)
+                {
+                    beepService?.Beep(BeepType.Prepare);
+                }
+            }
+            else if (intervalType == ErgProgramIntervalType.MaxEffort)
+            {
+                if (newIntervalSecond == /*10*/ 9)
+                {
+                    beepService?.Beep(BeepType.Go);
+                }
+                else if (newIntervalSecond <= 2 && newIntervalSecond >= 0)
+                {
+                    beepService?.Beep(BeepType.Prepare);
+                }
+            }
+            else if (intervalType == ErgProgramIntervalType.Recovery)
+            {
+                if (newIntervalSecond == /*27*/ 26)
+                {
+                    beepService?.Beep(BeepType.Stop);
+                }
+            }
+            else if (intervalType == ErgProgramIntervalType.CoolDown)
+            {
+                if (newIntervalSecond == /*120*/119)
+                {
+                    beepService?.Beep(BeepType.Stop);
+                }
             }
         }
 

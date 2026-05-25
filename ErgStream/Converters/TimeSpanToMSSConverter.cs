@@ -18,7 +18,7 @@ public class TimeSpanToMSSConverter : IValueConverter
         if (ts == null)
             return "--:--";
 
-        var abs = ts.Value < TimeSpan.Zero ? TimeSpan.Zero : ts.Value;
+        TimeSpan abs = ts.Value < TimeSpan.Zero ? TimeSpan.Zero : ts.Value;
         int totalSeconds = (int)abs.TotalSeconds;
         int minutes = totalSeconds / 60;
         int seconds = totalSeconds % 60;

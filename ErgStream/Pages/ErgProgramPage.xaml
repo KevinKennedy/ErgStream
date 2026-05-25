@@ -47,7 +47,14 @@
                 <Setter Property="HorizontalTextAlignment" Value="Center" />
                 <Setter Property="VerticalTextAlignment" Value="Center" />
             </Style>
-
+            
+            <Style x:Key="IntervalNameLabel" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Pm5Text}" />
+                <Setter Property="FontSize" Value="50" />
+                <Setter Property="HorizontalTextAlignment" Value="Center" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+            </Style>
+            
             <Style x:Key="Pm5DividerStyle" TargetType="BoxView">
                 <Setter Property="HeightRequest" Value="2" />
                 <Setter Property="Color" Value="{StaticResource Pm5Divider}" />
@@ -111,10 +118,11 @@
 
         <!-- ===== PM5 DISPLAY (ProgramNotStarted / Running / Completed / Canceled) ===== -->
         <Grid Grid.Row="1"
-              RowDefinitions="Auto,Auto,2,Auto,2,Auto,2,Auto"
+              RowDefinitions="Auto,Auto,Auto,Auto"
               IsVisible="False"
               BackgroundColor="{StaticResource Pm5Bg}"
-              Padding="12,8">
+              Padding="12,8"
+              >
             <Grid.Triggers>
                 <DataTrigger TargetType="Grid" Binding="{Binding State}" Value="ProgramNotStarted">
                     <Setter Property="IsVisible" Value="True" />
@@ -130,23 +138,10 @@
                 </DataTrigger>
             </Grid.Triggers>
 
-            <!-- Row 0: Interval title + interval type indicator -->
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Padding="0,4">
-                <Label Grid.Column="0"
+            <!-- Row 0: Interval title -->
+            <Label Grid.Row="0"
                        Text="{Binding IntervalTitle}"
-                       Style="{StaticResource Pm5SmallLabel}"
-                       HorizontalTextAlignment="Start"
-                       LineBreakMode="TailTruncation" />
-                <!-- Interval type color indicator -->
-                <BoxView Grid.Column="1"
-                         x:Name="IntervalIndicator"
-                         WidthRequest="18"
-                         HeightRequest="18"
-                         CornerRadius="9"
-                         VerticalOptions="Center"
-                         Margin="8,0,0,0"
-                         Color="Transparent" />
-            </Grid>
+                       Style="{StaticResource IntervalNameLabel}" />
 
             <!-- Row 1: Time remaining (big) -->
             <Label Grid.Row="1"
@@ -154,36 +149,17 @@
                    Style="{StaticResource Pm5BigNumber}"
                    Padding="4,0" />
 
-            <BoxView Grid.Row="2" Style="{StaticResource Pm5DividerStyle}" />
+            <!-- Interval type color indicator -->
+            <BoxView Grid.Row="2"
+                         x:Name="IntervalIndicator"
+                         CornerRadius="9"
+                         VerticalOptions="Center"
+                         Margin="8"
+                         HeightRequest="60"
+                         Color="{Binding IndicatorColor}" />
 
-            <!-- Row 3: Pace /500m -->
-            <HorizontalStackLayout Grid.Row="3"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"
-                                   Padding="4,4">
-                <Label Text="{Binding Pace, Converter={StaticResource TimeSpanToMSS}}"
-                       Style="{StaticResource Pm5MedNumber}"
-                       HorizontalOptions="Center" />
-                <Label Text=" /500m" Style="{StaticResource Pm5Unit}" />
-            </HorizontalStackLayout>
-
-            <BoxView Grid.Row="4" Style="{StaticResource Pm5DividerStyle}" />
-
-            <!-- Row 5: Stroke rate s/m -->
-            <HorizontalStackLayout Grid.Row="5"
-                                   HorizontalOptions="Center"
-                                   VerticalOptions="Center"
-                                   Padding="4,4">
-                <Label Text="{Binding StrokeRate, StringFormat='{0:F0}'}"
-                       Style="{StaticResource Pm5MedNumber}"
-                       HorizontalOptions="Center" />
-                <Label Text=" s/m" Style="{StaticResource Pm5Unit}" />
-            </HorizontalStackLayout>
-
-            <BoxView Grid.Row="6" Style="{StaticResource Pm5DividerStyle}" />
-
-            <!-- Row 7: Program state / completion message -->
-            <Label Grid.Row="7"
+            <!-- Row 5: Program state / completion message -->
+            <Label Grid.Row="3"
                    Padding="4,6"
                    Style="{StaticResource Pm5SmallLabel}"
                    IsVisible="False">
