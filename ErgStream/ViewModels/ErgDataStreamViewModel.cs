@@ -120,7 +120,7 @@ namespace ErgStream.ViewModels
             }
             catch (Exception ex)
             {
-                await Shell.Current.DisplayAlert("Connection Error",
+                await Shell.Current.DisplayAlertAsync("Connection Error",
                     $"Failed to connect to ergometer: {ex.Message}",
                     "OK");
             }
@@ -205,7 +205,7 @@ namespace ErgStream.ViewModels
         [RelayCommand]
         private async Task ClearAsync()
         {
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await Shell.Current.DisplayAlertAsync(
                 "Clear Data",
                 "Are you sure you want to clear all data? Any data you haven't copied will be permanently deleted.",
                 "Yes",

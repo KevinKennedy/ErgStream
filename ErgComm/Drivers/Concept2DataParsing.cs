@@ -17,7 +17,7 @@ namespace ErgComm.Drivers
 
             int offset = 0;
             ErgStatus e = new();
-            e.Timestamp = DateTime.Now;
+            e.Timestamp = DateTime.UtcNow;
             e.ElapsedTime = ParseInt24(data, ref offset) / 100.0; // centiseconds to seconds
             e.Distance = ParseInt24(data, ref offset) / 10.0; // decimeters to meters
             e.WorkoutType = (int) ParseByte(data, ref offset);
@@ -42,7 +42,7 @@ namespace ErgComm.Drivers
 
             int offset = 0;
             ErgStatus e = new();
-            e.Timestamp = DateTime.Now;
+            e.Timestamp = DateTime.UtcNow;
             e.ElapsedTime = ParseInt24(data, ref offset) / 100.0; // centiseconds to seconds
             e.Speed = ParseInt16(data, ref offset) / 1000.0; // millimeters per second to meters per second
             e.StrokeRate = (int) ParseByte(data, ref offset);
@@ -71,7 +71,7 @@ namespace ErgComm.Drivers
 
             int offset = 0;
             StrokeData e = new();
-            e.Timestamp = DateTime.Now;
+            e.Timestamp = DateTime.UtcNow;
             e.ElapsedTime = ParseInt24(data, ref offset) / 100.0; // centiseconds to seconds
             e.Distance = ParseInt24(data, ref offset) / 10.0; // decimeters to meters
             offset += 1; // Skip drive length (1 byte) (0.01 meter units, max = 2.55 meters)
@@ -95,7 +95,7 @@ namespace ErgComm.Drivers
 
             int offset = 0;
             StrokeData e = new();
-            e.Timestamp = DateTime.Now;
+            e.Timestamp = DateTime.UtcNow;
             e.ElapsedTime = ParseInt24(data, ref offset) / 100.0; // centiseconds to seconds
             e.Power = ParseInt16(data, ref offset); // watts
             e.Calories = (int) ParseInt16(data, ref offset); // calories

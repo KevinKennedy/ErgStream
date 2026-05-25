@@ -15,9 +15,9 @@ namespace ErgComm.Models
         public int StrokeId { get; set; } = -1;
 
         /// <summary>
-        /// Timestamp when the data was captured. In local time for easier display, but could be converted to UTC if needed.
+        /// Timestamp when the data was captured.
         /// </summary>
-        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
         /// <summary>
         /// Elapsed time in seconds.
@@ -85,7 +85,8 @@ namespace ErgComm.Models
             }
 
             // Create a CSV line with all properties, using empty string for null values
-            return $"{(maskNondeterministicData ? "<timeStamp>" : Timestamp.ToString("O"))}," + // ISO 8601 format for timestamp
+            DateTime localTimestamp = Timestamp.ToLocalTime();
+            return $"{(maskNondeterministicData ? "<timeStamp>" : localTimestamp.ToString("O"))}," + // ISO 8601 format for timestamp
                    $"{ElapsedTime?.ToString("F2") ?? ""}," +
                    $"{Distance?.ToString() ?? ""}," +
                    $"{Power?.ToString("F1") ?? ""}," +
@@ -105,7 +106,8 @@ namespace ErgComm.Models
 
         override public string ToString()
         {
-            return $"{Timestamp.ToString("O")}  " + // ISO 8601 format for timestamp
+            DateTime localTimestamp = Timestamp.ToLocalTime();
+            return $"{localTimestamp.ToString("O")}  " + // ISO 8601 format for timestamp
                    $"Elapsed: {ElapsedTime?.ToString("F2") ?? "-"}  " +
                    $"Distance: {Distance?.ToString() ?? "-"}  " +
                    $"Power: {Power?.ToString("F1") ?? "-"}  " +

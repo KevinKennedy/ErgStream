@@ -47,6 +47,10 @@ namespace ErgStream
 
             builder.Services.AddSingleton<ErgComm.ErgCommService>();
 
+#if WINDOWS
+            builder.Services.AddSingleton<IBeepService, ErgStream.Platforms.Windows.BeepService>();
+#endif
+
             // Register ViewModels and Pages
             builder.Services.AddTransient<ErgDataStreamViewModel>();
             builder.Services.AddTransient<ErgDataStreamPage>();
