@@ -21,9 +21,9 @@ namespace ErgComm.Models
         public int StatusId { get; set; } = -1;
 
         /// <summary>
-        /// Timestamp when this data was last updated. In local time for easier display, but could be converted to UTC if needed.
+        /// Timestamp when this data was last updated. Stored in UTC and converted to local time only for display or CSV output.
         /// </summary>
-        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
         /// <summary>
         /// Elapsed time in seconds.
@@ -116,8 +116,9 @@ namespace ErgComm.Models
 
         public string ToCsv(bool maskNondeterministicData = false)
         {
+            DateTime localTimestamp = Timestamp.ToLocalTime();
             // Create a CSV line with all properties, using empty string for null values
-            return $"{(maskNondeterministicData ? "<timeStamp>" : Timestamp.ToString("O"))}," + // ISO 8601 format for timestamp
+            return $"{(maskNondeterministicData ? "<timeStamp>" : localTimestamp.ToString("O"))}," + // ISO 8601 format for timestamp
                    $"{ElapsedTime?.ToString("F2") ?? ""}," +
                    $"{Distance?.ToString() ?? ""}," +
                    $"{WorkoutType?.ToString() ?? ""}" +
@@ -148,9 +149,11 @@ namespace ErgComm.Models
 
         override public string ToString()
         {
-            return 
+            DateTime localTimestamp = Timestamp.ToLocalTime();
+
+            return
                    $"StatusId: {StatusId}  " +
-                   $"{Timestamp.ToString("O")}  " + // ISO 8601 format for timestamp
+                   $"{localTimestamp.ToString("O")}  " + // ISO 8601 format for timestamp
                    $"Elapsed: {ElapsedTime?.ToString("F2") ?? "-"}  " +
                    $"Distance: {Distance?.ToString() ?? "-"}  " +
                    $"WorkoutType: {WorkoutType?.ToString() ?? "-"}  " +

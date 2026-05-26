@@ -46,10 +46,17 @@ namespace ErgStream
             builder.Services.AddSingleton<ModalErrorHandler>();
 
             builder.Services.AddSingleton<ErgComm.ErgCommService>();
+            builder.Services.AddSingleton<ErgRecorder>();
+
+#if WINDOWS
+            builder.Services.AddSingleton<IBeepService, ErgStream.Platforms.Windows.BeepService>();
+#endif
 
             // Register ViewModels and Pages
             builder.Services.AddTransient<ErgDataStreamViewModel>();
             builder.Services.AddTransient<ErgDataStreamPage>();
+            builder.Services.AddTransient<ErgProgramViewModel>();
+            builder.Services.AddTransient<ErgProgramPage>();
 
             var app = builder.Build();
 

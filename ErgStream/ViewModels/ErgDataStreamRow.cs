@@ -153,7 +153,8 @@ namespace ErgStream.ViewModels
             StringBuilder sb = new StringBuilder();
 
             // Format that Excel will recognize
-            sb.Append(TimeStamp.ToString("yyyy-MM-dd HH:mm:ss"));
+            DateTime localTimeStamp = TimeStamp.ToLocalTime();
+            sb.Append(localTimeStamp.ToString("yyyy-MM-dd HH:mm:ss"));
             sb.Append(',');
             sb.Append(ElapsedTime?.ToString("F2") ?? "");
             sb.Append(',');

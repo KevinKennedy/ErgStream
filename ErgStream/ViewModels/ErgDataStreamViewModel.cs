@@ -14,16 +14,13 @@ namespace ErgStream.ViewModels
         StrokeWithPowerOnly
     }
 
-    public partial class ErgDataStreamViewModel : ObservableObject, IQueryAttributable
+    public partial class ErgDataStreamViewModel : ObservableObject
     {
         private const string ErgDataFilterPreferenceKey = "ErgDataStream_DataFilter";
         private const string AutoScrollEnabledPreferenceKey = "ErgDataStream_AutoScrollEnabled";
 
-        private readonly ErgCommService ergCommService;
-        private CancellationTokenSource? connectionCancellationTokenSource;
-
-        [ObservableProperty]
-        private string ergId = string.Empty;
+        private readonly ErgRecorder ergRecorder;
+        private readonly HashSet<ErgDataStreamRow> visibleRows = new();
 
         [ObservableProperty]
         private bool isConnecting;
@@ -37,14 +34,13 @@ namespace ErgStream.ViewModels
         [ObservableProperty]
         private ObservableCollection<ErgDataStreamRow> dataRows = new();
 
-        private Dictionary<int, ErgDataStreamRow> statusMessages = new();
-        private Dictionary<int, ErgDataStreamRow> strokeMessages = new();
-
-        public ErgDataStreamViewModel(ErgCommService ergCommService)
+        public ErgDataStreamViewModel(ErgRecorder ergRecorder)
         {
-            this.ergCommService = ergCommService;
+            this.ergRecorder = ergRecorder;
+            ergRecorder.OnNewDataReceived += OnNewErgRecorderDataReceived;
             RestoreErgDataFilter();
             RestoreAutoScrollEnabled();
+            ergRecorder.OnCleared += OnErgRecorderCleared;
         }
 
         private void RestoreErgDataFilter()
@@ -71,132 +67,70 @@ namespace ErgStream.ViewModels
             Preferences.Set(AutoScrollEnabledPreferenceKey, value);
         }
 
-        public void ApplyQueryAttributes(IDictionary<string, object> query)
+        private void OnNewErgRecorderDataReceived(bool isStatusMessage, bool isUpdate, ErgDataStreamRow row)
         {
-            if (query.TryGetValue("ergId", out var ergIdObj) && ergIdObj is string ergId)
-            {
-                ErgId = ergId;
-                _ = ConnectToErgAsync(ergId);
-            }
-        }
+            IsConnecting = false;
 
-        partial void OnErgIdChanged(string value)
-        {
-            if (!string.IsNullOrEmpty(value))
+            if (isStatusMessage)
             {
-                _ = ConnectToErgAsync(value);
-            }
-        }
-
-        private async Task ConnectToErgAsync(string ergId)
-        {
-            if (connectionCancellationTokenSource != null)
-            {
-                connectionCancellationTokenSource.Cancel();
-                connectionCancellationTokenSource.Dispose();
-                connectionCancellationTokenSource = null;
-            }
-
-            if (string.IsNullOrEmpty(ergId))
-            {
-                return;
-            }
-
-            IsConnecting = true;
-
-            try
-            {
-                connectionCancellationTokenSource = new CancellationTokenSource();
-
-                await ergCommService.ConnectToErgAsync(
-                    ergId,
-                    OnErgStatusDataReceived,
-                    OnErgStrokeDataReceived,
-                    connectionCancellationTokenSource.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                // Expected when we cancel the connection - do nothing
-            }
-            catch (Exception ex)
-            {
-                await Shell.Current.DisplayAlert("Connection Error",
-                    $"Failed to connect to ergometer: {ex.Message}",
-                    "OK");
-            }
-            finally
-            {
-                IsConnecting = false;
-            }
-        }
-
-        private void OnErgStatusDataReceived(ErgStatus ergStatus)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                IsConnecting = false;
-
-                if (statusMessages.TryGetValue(ergStatus.StatusId, out var existingRow))
+                if (!isUpdate)
                 {
-                    existingRow.UpdateFromStatus(ergStatus);
-                }
-                else
-                {
-                    var newRow = new ErgDataStreamRow();
-                    newRow.UpdateFromStatus(ergStatus);
-                    statusMessages[ergStatus.StatusId] = newRow;
-                    if (IsVisible(newRow))
+                    if (IsVisible(row))
                     {
-                        DataRows.Add(newRow);
+                        MainThread.BeginInvokeOnMainThread(() =>
+                        {
+                            DataRows.Add(row);
+                            visibleRows.Add(row);
+                        });
+
                     }
                 }
-            });
-        }
-
-        private void OnErgStrokeDataReceived(StrokeData strokeData)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
+            }
+            else // stroke message
             {
-                IsConnecting = false;
-
-                if (strokeMessages.TryGetValue(strokeData.StrokeId, out var existingRow))
+                if (isUpdate)
                 {
-                    bool wasVisible = IsVisible(existingRow);
-
-                    existingRow.UpdateFromStroke(strokeData);
-
-                    if (wasVisible && !IsVisible(existingRow))
+                    bool wasVisible = visibleRows.Contains(row);
+                    
+                    if (wasVisible && !IsVisible(row))
                     {
-                        DataRows.Remove(existingRow);
+                        DataRows.Remove(row);
+                        visibleRows.Remove(row);
                     }
-                    else if (!wasVisible && IsVisible(existingRow))
+                    else if (!wasVisible && IsVisible(row))
                     {
-                        DataRows.Add(existingRow);
+                        DataRows.Add(row);
+                        visibleRows.Add(row);
                     }
                 }
                 else
                 {
-                    var newRow = new ErgDataStreamRow();
-                    newRow.UpdateFromStroke(strokeData);
-                    strokeMessages[strokeData.StrokeId] = newRow;
-                    if (IsVisible(newRow))
+                    if (IsVisible(row))
                     {
-                        DataRows.Add(newRow);
+                        DataRows.Add(row);
+                        visibleRows.Add(row);
                     }
                 }
-            });
+            }
+        }
+        private void OnErgRecorderCleared()
+        {
+            DataRows.Clear();
+            visibleRows.Clear();
         }
 
         partial void OnErgDataFilterChanged(ErgDataFilter value)
         {
             SaveErgDataFilter();
 
-            IEnumerable<ErgDataStreamRow> newDataRowsEnum = statusMessages.Values.Concat(strokeMessages.Values).OrderBy(row => row.TimeStamp).Where(row => IsVisible(row));
+            IEnumerable<ErgDataStreamRow> newDataRowsEnum = ergRecorder.AllMessagesByTime.Where(row => IsVisible(row));
 
             ObservableCollection<ErgDataStreamRow> newDataRows = new();
+            visibleRows.Clear();
             foreach (var row in newDataRowsEnum)
             {
                 newDataRows.Add(row);
+                visibleRows.Add(row);
             }
 
             DataRows = newDataRows;
@@ -205,7 +139,7 @@ namespace ErgStream.ViewModels
         [RelayCommand]
         private async Task ClearAsync()
         {
-            bool confirm = await Shell.Current.DisplayAlert(
+            bool confirm = await Shell.Current.DisplayAlertAsync(
                 "Clear Data",
                 "Are you sure you want to clear all data? Any data you haven't copied will be permanently deleted.",
                 "Yes",
@@ -216,9 +150,7 @@ namespace ErgStream.ViewModels
                 return;
             }
 
-            statusMessages.Clear();
-            strokeMessages.Clear();
-            DataRows.Clear();
+            ergRecorder.Clear();
         }
 
         [RelayCommand]
@@ -226,7 +158,7 @@ namespace ErgStream.ViewModels
         {
             if (DataRows.Count == 0)
             {
-                await Shell.Current.DisplayAlert("No Data", "There is no data to copy.", "OK");
+                await Shell.Current.DisplayAlertAsync("No Data", "There is no data to copy.", "OK");
                 return;
             }
 
@@ -250,13 +182,6 @@ namespace ErgStream.ViewModels
             }
 
             await Clipboard.SetTextAsync(sb.ToString());
-        }
-
-        public void Disconnect()
-        {
-            connectionCancellationTokenSource?.Cancel();
-            connectionCancellationTokenSource?.Dispose();
-            connectionCancellationTokenSource = null;
         }
 
         private bool IsVisible(ErgDataStreamRow row)

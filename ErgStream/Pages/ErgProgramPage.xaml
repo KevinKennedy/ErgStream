@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:ErgStream.ViewModels"
+             xmlns:conv="clr-namespace:ErgStream.Converters"
+             x:DataType="vm:ErgProgramViewModel"
+             x:Class="ErgStream.Pages.ErgProgramPage"
+             Title="Erg Program"
+             BackgroundColor="#B0C4D8">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <conv:TimeSpanToMSSConverter x:Key="TimeSpanToMSS" />
+
+            <!-- PM5 display background: light blue-grey -->
+            <Color x:Key="Pm5Bg">#B8CCE0</Color>
+            <!-- PM5 text: dark navy -->
+            <Color x:Key="Pm5Text">#1C2B6E</Color>
+            <!-- PM5 divider -->
+            <Color x:Key="Pm5Divider">#7A9ABD</Color>
+
+            <Style x:Key="Pm5BigNumber" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Pm5Text}" />
+                <Setter Property="FontSize" Value="72" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="HorizontalTextAlignment" Value="Center" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+            </Style>
+
+            <Style x:Key="Pm5MedNumber" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Pm5Text}" />
+                <Setter Property="FontSize" Value="48" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="HorizontalTextAlignment" Value="Center" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+            </Style>
+
+            <Style x:Key="Pm5Unit" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Pm5Text}" />
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="VerticalTextAlignment" Value="End" />
+            </Style>
+
+            <Style x:Key="Pm5SmallLabel" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Pm5Text}" />
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="HorizontalTextAlignment" Value="Center" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+            </Style>
+            
+            <Style x:Key="IntervalNameLabel" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Pm5Text}" />
+                <Setter Property="FontSize" Value="50" />
+                <Setter Property="HorizontalTextAlignment" Value="Center" />
+                <Setter Property="VerticalTextAlignment" Value="Center" />
+            </Style>
+            
+            <Style x:Key="Pm5DividerStyle" TargetType="BoxView">
+                <Setter Property="HeightRequest" Value="2" />
+                <Setter Property="Color" Value="{StaticResource Pm5Divider}" />
+                <Setter Property="HorizontalOptions" Value="Fill" />
+                <Setter Property="Margin" Value="0" />
+            </Style>
+
+            <Style x:Key="ActionButton" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Pm5Text}" />
+                <Setter Property="TextColor" Value="{StaticResource Pm5Bg}" />
+                <Setter Property="FontAttributes" Value="Bold" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="Padding" Value="20,10" />
+                <Setter Property="Margin" Value="8,0" />
+            </Style>
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto"
+          BackgroundColor="{StaticResource Pm5Bg}">
+
+        <!-- ===== STATUS BAR (always visible) ===== -->
+        <Label Grid.Row="0"
+               Text="{Binding State}"
+               Style="{StaticResource Pm5SmallLabel}"
+               Padding="0,6"
+               IsVisible="False">
+            <Label.Triggers>
+                <DataTrigger TargetType="Label" Binding="{Binding State}" Value="ErgDisconnected">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+                <DataTrigger TargetType="Label" Binding="{Binding State}" Value="ConnectingToErg">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </Label.Triggers>
+        </Label>
+
+        <!-- ===== SIMPLE STATUS DISPLAY (ErgDisconnected / ConnectingToErg) ===== -->
+        <VerticalStackLayout Grid.Row="1"
+                             VerticalOptions="Center"
+                             HorizontalOptions="Center"
+                             Spacing="16"
+                             IsVisible="False">
+            <VerticalStackLayout.Triggers>
+                <DataTrigger TargetType="VerticalStackLayout" Binding="{Binding State}" Value="ErgDisconnected">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+                <DataTrigger TargetType="VerticalStackLayout" Binding="{Binding State}" Value="ConnectingToErg">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </VerticalStackLayout.Triggers>
+
+            <Label Text="{Binding State}"
+                   TextColor="{StaticResource Pm5Text}"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center" />
+        </VerticalStackLayout>
+
+        <!-- ===== PM5 DISPLAY (ProgramNotStarted / Running / Completed / Canceled) ===== -->
+        <Grid Grid.Row="1"
+              RowDefinitions="10,Auto,Auto,Auto,10"
+              IsVisible="False"
+              BackgroundColor="{StaticResource Pm5Bg}"
+              WidthRequest="600"
+              VerticalOptions="Center"
+              >
+            <Grid.Triggers>
+                <DataTrigger TargetType="Grid" Binding="{Binding State}" Value="ProgramNotStarted">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+                <DataTrigger TargetType="Grid" Binding="{Binding State}" Value="Running">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+                <DataTrigger TargetType="Grid" Binding="{Binding State}" Value="Completed">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+                <DataTrigger TargetType="Grid" Binding="{Binding State}" Value="Canceled">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </Grid.Triggers>
+
+            <!-- Interval type color indicator -->
+            <BoxView Grid.Row="0" Grid.RowSpan="5"
+                         x:Name="IntervalIndicator"
+                         CornerRadius="9"
+                         Margin="8"
+                         Color="{Binding IndicatorColor}" />
+            
+            <!-- Interval title -->
+            <Label Grid.Row="1"
+                       Text="{Binding IntervalTitle}"
+                       Style="{StaticResource IntervalNameLabel}"
+                       HeightRequest="200"
+                       VerticalTextAlignment="Center"/>
+
+            <!-- Time remaining (big) -->
+            <Label Grid.Row="2"
+                   Text="{Binding IntervalTimeRemaining, Converter={StaticResource TimeSpanToMSS}}"
+                   Style="{StaticResource Pm5BigNumber}"
+                   Padding="4,0" />
+
+            <!-- Program state / completion message -->
+            <Label Grid.Row="3"
+                   Padding="4,6"
+                   Style="{StaticResource Pm5SmallLabel}"
+                   IsVisible="False">
+                <Label.Triggers>
+                    <DataTrigger TargetType="Label" Binding="{Binding State}" Value="Completed">
+                        <Setter Property="IsVisible" Value="True" />
+                        <Setter Property="Text" Value="Program complete" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Label" Binding="{Binding State}" Value="Canceled">
+                        <Setter Property="IsVisible" Value="True" />
+                        <Setter Property="Text" Value="Program stopped" />
+                    </DataTrigger>
+                </Label.Triggers>
+            </Label>
+        </Grid>
+
+        <!-- ===== BOTTOM ACTION BUTTONS ===== -->
+        <HorizontalStackLayout Grid.Row="2"
+                               HorizontalOptions="Center"
+                               Spacing="8"
+                               Padding="0,12"
+                               IsVisible="False">
+            <HorizontalStackLayout.Triggers>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding State}" Value="ProgramNotStarted">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding State}" Value="Running">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding State}" Value="Completed">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+                <DataTrigger TargetType="HorizontalStackLayout" Binding="{Binding State}" Value="Canceled">
+                    <Setter Property="IsVisible" Value="True" />
+                </DataTrigger>
+            </HorizontalStackLayout.Triggers>
+
+            <Button Text="Start"
+                    Style="{StaticResource ActionButton}"
+                    Command="{Binding StartProgramCommand}"
+                    IsVisible="False">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding State}" Value="ProgramNotStarted">
+                        <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding State}" Value="Completed">
+                        <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding State}" Value="Canceled">
+                        <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
+            <Button Text="Stop"
+                    Style="{StaticResource ActionButton}"
+                    Command="{Binding StopProgramCommand}"
+                    IsVisible="False">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding State}" Value="Running">
+                        <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+
+            <Button Text="Copy Report"
+                    Style="{StaticResource ActionButton}"
+                    Command="{Binding CopyReportCommand}"
+                    IsVisible="False">
+                <Button.Triggers>
+                    <DataTrigger TargetType="Button" Binding="{Binding State}" Value="ProgramNotStarted">
+                        <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding State}" Value="Running">
+                        <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding State}" Value="Completed">
+                        <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Button" Binding="{Binding State}" Value="Canceled">
+                        <Setter Property="IsVisible" Value="True" />
+                    </DataTrigger>
+                </Button.Triggers>
+            </Button>
+        </HorizontalStackLayout>
+    </Grid>
+</ContentPage>

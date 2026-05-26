@@ -1,11 +1,6 @@
-using ErgComm;
-using ErgComm.Models;
-using System.Text;
 using ErgStream.ViewModels;
-using System.ComponentModel;
-using Syncfusion.Maui.DataGrid;
 using System.Collections.Specialized;
-using System.Diagnostics;
+using System.ComponentModel;
 
 namespace ErgStream.Pages
 {
@@ -158,21 +153,21 @@ namespace ErgStream.Pages
             }
         }
 
-        protected override void OnAppearing()
-        {
-            base.OnAppearing();
-        }
+        // We need to do more work to get these to register and unregister correctly
+        // However, right now, once pages get created, they are around for the
+        // life of the app so it's not causing any leaks. If we do more navigation
+        // stuff we'll need to fix it.
 
-        protected override void OnDisappearing()
-        {
-            base.OnDisappearing();
-            this.viewModel.PropertyChanged -= OnViewModelPropertyChanged;
-            this.viewModel.DataRows.CollectionChanged -= OnDataRowsCollectionChanged;
-            
-            if (BindingContext is ErgDataStreamViewModel viewModel)
-            {
-                viewModel.Disconnect();
-            }
-        }
+        //protected override void OnAppearing()
+        //{
+        //    base.OnAppearing();
+        //}
+
+        //protected override void OnDisappearing()
+        //{
+        //    base.OnDisappearing();
+        //    this.viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        //    this.viewModel.DataRows.CollectionChanged -= OnDataRowsCollectionChanged;
+        //}
     }
 }

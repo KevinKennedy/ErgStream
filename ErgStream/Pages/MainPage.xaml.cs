@@ -7,15 +7,18 @@ namespace ErgStream.Pages
     public partial class MainPage : ContentPage
     {
         private readonly ErgCommService _ergCommService;
+        private readonly ErgRecorder ergRecorder;
         private CancellationTokenSource? _discoveryCts;
 
         public ObservableCollection<ErgInfo> Items { get; set; }
 
-        public MainPage()
+        public MainPage(ErgCommService ergComService, ErgRecorder ergRecorder)
         {
             InitializeComponent();
             
-            _ergCommService = new ErgCommService();
+            //_ergCommService = new ErgCommService();
+            _ergCommService = ergComService;
+            this.ergRecorder = ergRecorder;
             Items = new ObservableCollection<ErgInfo>();
             
             BindingContext = this;
@@ -97,9 +100,11 @@ namespace ErgStream.Pages
         {
             if (e.CurrentSelection.FirstOrDefault() is ErgInfo selectedErg)
             {
-                // Navigate using absolute route with ///
-                await Shell.Current.GoToAsync($"///datastream?ergId={selectedErg.Id}");
+                _ = Task.Run(() => ergRecorder.ConnectToErgAsync(selectedErg.Id));
                 
+                //await Shell.Current.GoToAsync($"///datastream");
+                await Shell.Current.GoToAsync($"///ergprogram");
+
                 // Deselect the item
                 ((CollectionView)sender).SelectedItem = null;
             }
