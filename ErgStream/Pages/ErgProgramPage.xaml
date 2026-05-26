@@ -116,10 +116,11 @@
 
         <!-- ===== PM5 DISPLAY (ProgramNotStarted / Running / Completed / Canceled) ===== -->
         <Grid Grid.Row="1"
-              RowDefinitions="Auto,Auto,Auto,Auto"
+              RowDefinitions="10,Auto,Auto,Auto,10"
               IsVisible="False"
               BackgroundColor="{StaticResource Pm5Bg}"
-              Padding="12,8"
+              WidthRequest="600"
+              VerticalOptions="Center"
               >
             <Grid.Triggers>
                 <DataTrigger TargetType="Grid" Binding="{Binding State}" Value="ProgramNotStarted">
@@ -136,27 +137,25 @@
                 </DataTrigger>
             </Grid.Triggers>
 
-            <!-- Row 0: Interval title -->
-            <Label Grid.Row="0"
+            <!-- Interval type color indicator -->
+            <BoxView Grid.Row="0" Grid.RowSpan="5"
+                         x:Name="IntervalIndicator"
+                         CornerRadius="9"
+                         Margin="8"
+                         Color="{Binding IndicatorColor}" />
+            
+            <!-- Interval title -->
+            <Label Grid.Row="1"
                        Text="{Binding IntervalTitle}"
                        Style="{StaticResource IntervalNameLabel}" />
 
-            <!-- Row 1: Time remaining (big) -->
-            <Label Grid.Row="1"
+            <!-- Time remaining (big) -->
+            <Label Grid.Row="2"
                    Text="{Binding IntervalTimeRemaining, Converter={StaticResource TimeSpanToMSS}}"
                    Style="{StaticResource Pm5BigNumber}"
                    Padding="4,0" />
 
-            <!-- Interval type color indicator -->
-            <BoxView Grid.Row="2"
-                         x:Name="IntervalIndicator"
-                         CornerRadius="9"
-                         VerticalOptions="Center"
-                         Margin="8"
-                         HeightRequest="60"
-                         Color="{Binding IndicatorColor}" />
-
-            <!-- Row 5: Program state / completion message -->
+            <!-- Program state / completion message -->
             <Label Grid.Row="3"
                    Padding="4,6"
                    Style="{StaticResource Pm5SmallLabel}"

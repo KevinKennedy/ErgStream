@@ -169,7 +169,7 @@ namespace ErgStream.ViewModels
                             DoBeep(currentErgProgramInterval.IntervalType, newIntervalSecond);
                             currentIntervalSecond = newIntervalSecond;
                         }
-                        //UpdateDisplayMembers(intervalTimeRemaining, currentErgProgramInterval.Title, currentErgProgramInterval.IntervalType, pace, strokeRate);
+                        UpdateDisplayMembers(intervalTimeRemaining, currentErgProgramInterval.Title, currentErgProgramInterval.IntervalType, pace, strokeRate);
                         await ergProgramTickTimer.WaitForNextTickAsync(token);
                         now = DateTime.UtcNow;
                     }
@@ -209,7 +209,7 @@ namespace ErgStream.ViewModels
                     IndicatorColor = intervalType switch
                     {
                         ErgProgramIntervalType.BuildToMaxEffort => Colors.Yellow,
-                        ErgProgramIntervalType.MaxEffort => Colors.Green,
+                        ErgProgramIntervalType.MaxEffort => Colors.LightGreen,
                         ErgProgramIntervalType.Recovery => Colors.Red,
                         ErgProgramIntervalType.CoolDown => Colors.Red,
                         _ => Colors.Transparent
