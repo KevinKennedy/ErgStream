@@ -70,7 +70,7 @@ namespace ErgStream.ViewModels
         private ErgProgramState state = ErgProgramState.ErgDisconnected;
 
         [ObservableProperty]
-        private TimeSpan intervalTimeRemaining = TimeSpan.Zero;
+        private TimeSpan? intervalTimeRemaining = null;
 
         [ObservableProperty]
         private string intervalTitle = string.Empty;
@@ -267,9 +267,10 @@ namespace ErgStream.ViewModels
             ergProgramCancellationTokenSource?.Dispose();
             ergProgramCancellationTokenSource = null;
 
+            // Keep the report around even if things were stopped?
             //reportStringBuilder.Clear();
             allProgramPowers.Clear();
-            IntervalTimeRemaining = TimeSpan.Zero;
+            IntervalTimeRemaining = null;
             IntervalTitle = string.Empty;
             IntervalType = null;
             IndicatorColor = Colors.Transparent;

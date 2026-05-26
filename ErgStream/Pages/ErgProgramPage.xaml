@@ -147,7 +147,9 @@
             <!-- Interval title -->
             <Label Grid.Row="1"
                        Text="{Binding IntervalTitle}"
-                       Style="{StaticResource IntervalNameLabel}" />
+                       Style="{StaticResource IntervalNameLabel}"
+                       HeightRequest="200"
+                       VerticalTextAlignment="Center"/>
 
             <!-- Time remaining (big) -->
             <Label Grid.Row="2"
