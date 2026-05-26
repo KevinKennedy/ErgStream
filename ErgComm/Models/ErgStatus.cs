@@ -21,7 +21,7 @@ namespace ErgComm.Models
         public int StatusId { get; set; } = -1;
 
         /// <summary>
-        /// Timestamp when this data was last updated. In local time for easier display, but could be converted to UTC if needed.
+        /// Timestamp when this data was last updated. Stored in UTC and converted to local time only for display or CSV output.
         /// </summary>
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
