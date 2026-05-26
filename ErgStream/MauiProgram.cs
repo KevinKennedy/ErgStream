@@ -46,6 +46,7 @@ namespace ErgStream
             builder.Services.AddSingleton<ModalErrorHandler>();
 
             builder.Services.AddSingleton<ErgComm.ErgCommService>();
+            builder.Services.AddSingleton<ErgRecorder>();
 
 #if WINDOWS
             builder.Services.AddSingleton<IBeepService, ErgStream.Platforms.Windows.BeepService>();

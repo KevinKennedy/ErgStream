@@ -1,7 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using ErgComm;
-using ErgComm.Models;
+using System.Diagnostics;
 using System.Text;
 
 namespace ErgStream.ViewModels
@@ -32,7 +31,7 @@ namespace ErgStream.ViewModels
         public ErgProgramIntervalType IntervalType { get; set; }
     }
 
-    public partial class ErgProgramViewModel : ObservableObject, IQueryAttributable
+    public partial class ErgProgramViewModel : ObservableObject
     {
 
         private static readonly ErgProgramInterval[] ergProgramIntervals = new[]
@@ -57,22 +56,15 @@ namespace ErgStream.ViewModels
             new ErgProgramInterval { Title = "Cool-down", Duration = TimeSpan.FromMinutes(2), IntervalType = ErgProgramIntervalType.CoolDown }
         };
 
-        private readonly ErgCommService ergCommService;
+        private readonly ErgRecorder ergRecorder; 
         private readonly IBeepService? beepService;
 
-        private CancellationTokenSource? connectionCancellationTokenSource;
         private CancellationTokenSource? ergProgramCancellationTokenSource;
-        private Dictionary<int, ErgDataStreamRow> statusMessages = new();
-        private Dictionary<int, ErgDataStreamRow> strokeMessages = new();
         List<double> allProgramPowers = new();
-        private ErgDataStreamRow? currentStroke;
         private ErgDataStreamRow? currentStatus;
         private StringBuilder reportStringBuilder = new();
 
         private DateTime? recordingStartTime;
-
-        [ObservableProperty]
-        private string ergId = string.Empty;
 
         [ObservableProperty]
         private ErgProgramState state = ErgProgramState.ErgDisconnected;
@@ -95,116 +87,44 @@ namespace ErgStream.ViewModels
         [ObservableProperty]
         private double? strokeRate;
 
-        public ErgProgramViewModel(ErgCommService ergCommService, IBeepService? beepService = null)
+        public ErgProgramViewModel(ErgRecorder ergRecorder, IBeepService? beepService = null)
         {
-            this.ergCommService = ergCommService;
+            this.ergRecorder = ergRecorder;
+            ergRecorder.OnNewDataReceived += OnNewErgRecorderDataReceived;
+            ergRecorder.OnCleared += OnErgRecorderCleared;
+
             this.beepService = beepService;
         }
 
-        public void ApplyQueryAttributes(IDictionary<string, object> query)
+        private void OnNewErgRecorderDataReceived(bool isStatusMessage, bool isUpdate, ErgDataStreamRow row)
         {
-            if (query.TryGetValue("ergId", out var ergIdObj) && ergIdObj is string ergId)
+            Debug.Assert(MainThread.IsMainThread);
+
+            if (State == ErgProgramState.ErgDisconnected || State == ErgProgramState.ConnectingToErg)
             {
-                ErgId = ergId;
-            }
-        }
-
-        partial void OnErgIdChanged(string value)
-        {
-            if (!string.IsNullOrEmpty(value))
-            {
-                _ = ConnectToErgAsync(value);
-            }
-        }
-
-        private async Task ConnectToErgAsync(string ergId)
-        {
-            if (connectionCancellationTokenSource != null)
-            {
-                connectionCancellationTokenSource.Cancel();
-                connectionCancellationTokenSource.Dispose();
-                connectionCancellationTokenSource = null;
-            }
-
-            if (string.IsNullOrEmpty(ergId))
-            {
-                return;
-            }
-
-            State = ErgProgramState.ConnectingToErg;
-
-            try
-            {
-                connectionCancellationTokenSource = new CancellationTokenSource();
-
-                await ergCommService.ConnectToErgAsync(
-                    ergId,
-                    OnErgStatusDataReceived,
-                    OnErgStrokeDataReceived,
-                    connectionCancellationTokenSource.Token);
-                
                 State = ErgProgramState.ProgramNotStarted;
             }
-            catch (OperationCanceledException)
+
+            if (isStatusMessage)
             {
-                // Expected when we cancel the connection - do nothing
-                State = ErgProgramState.ErgDisconnected;
-            }
-            catch (Exception ex)
-            {
-                await Shell.Current.DisplayAlertAsync("Connection Error",
-                    $"Failed to connect to ergometer: {ex.Message}",
-                    "OK");
-                State = ErgProgramState.ErgDisconnected;
+                currentStatus = row;
             }
         }
 
-        private void OnErgStatusDataReceived(ErgStatus ergStatus)
+        private void OnErgRecorderCleared()
         {
-            MainThread.BeginInvokeOnMainThread(() =>
+            Debug.Assert(MainThread.IsMainThread);
+
+            if (ergRecorder.ErgConnectionStatus == ErgConnectionStatus.Connected)
             {
-                if (State == ErgProgramState.ConnectingToErg)
-                {
-                    State = ErgProgramState.ProgramNotStarted;
-                }
-
-                if (statusMessages.TryGetValue(ergStatus.StatusId, out var existingRow))
-                {
-                    existingRow.UpdateFromStatus(ergStatus);
-                    currentStatus = existingRow;
-                }
-                else
-                {
-                    var newRow = new ErgDataStreamRow();
-                    newRow.UpdateFromStatus(ergStatus);
-                    statusMessages[ergStatus.StatusId] = newRow;
-                    currentStatus = newRow;
-                }
-            });
-        }
-
-        private void OnErgStrokeDataReceived(StrokeData strokeData)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
+                State = ErgProgramState.ProgramNotStarted;
+            }
+            else
             {
-                if (State == ErgProgramState.ConnectingToErg)
-                {
-                    State = ErgProgramState.ProgramNotStarted;
-                }
+                State = ErgProgramState.ErgDisconnected;
+            }
 
-                if (strokeMessages.TryGetValue(strokeData.StrokeId, out var existingRow))
-                {
-                    existingRow.UpdateFromStroke(strokeData);
-                    currentStroke = existingRow;
-                }
-                else
-                {
-                    var newRow = new ErgDataStreamRow();
-                    newRow.UpdateFromStroke(strokeData);
-                    strokeMessages[strokeData.StrokeId] = newRow;
-                    currentStroke = newRow;
-                }
-            });
+            StopProgram();
         }
 
         [RelayCommand]
@@ -249,7 +169,7 @@ namespace ErgStream.ViewModels
                             DoBeep(currentErgProgramInterval.IntervalType, newIntervalSecond);
                             currentIntervalSecond = newIntervalSecond;
                         }
-                        UpdateDisplayMembers(intervalTimeRemaining, currentErgProgramInterval.Title, currentErgProgramInterval.IntervalType, pace, strokeRate);
+                        //UpdateDisplayMembers(intervalTimeRemaining, currentErgProgramInterval.Title, currentErgProgramInterval.IntervalType, pace, strokeRate);
                         await ergProgramTickTimer.WaitForNextTickAsync(token);
                         now = DateTime.UtcNow;
                     }
@@ -346,6 +266,13 @@ namespace ErgStream.ViewModels
             ergProgramCancellationTokenSource?.Cancel();
             ergProgramCancellationTokenSource?.Dispose();
             ergProgramCancellationTokenSource = null;
+
+            //reportStringBuilder.Clear();
+            allProgramPowers.Clear();
+            IntervalTimeRemaining = TimeSpan.Zero;
+            IntervalTitle = string.Empty;
+            IntervalType = null;
+            IndicatorColor = Colors.Transparent;
         }
 
         [RelayCommand]
@@ -369,7 +296,7 @@ namespace ErgStream.ViewModels
             reportStringBuilder.AppendLine($"   StartTime: {(recordingStartTime.HasValue ? recordingStartTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "null")}");
             reportStringBuilder.AppendLine($"   EndTime: {recordingEndTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")}");
             reportStringBuilder.AppendLine($"   Stroke Powers:");
-            foreach (var stroke in strokeMessages.Values)
+            foreach (ErgDataStreamRow stroke in ergRecorder.StrokeMessages.Values)
             {
                 if (stroke.IsStrokeData && stroke.TimeStamp >= recordingStartTime && stroke.TimeStamp <= recordingEndTime && stroke.Power.HasValue)
                 {
@@ -382,15 +309,6 @@ namespace ErgStream.ViewModels
             reportStringBuilder.AppendLine();
 
             recordingStartTime = null;
-        }
-
-        public void Disconnect()
-        {
-            StopProgram();
-
-            connectionCancellationTokenSource?.Cancel();
-            connectionCancellationTokenSource?.Dispose();
-            connectionCancellationTokenSource = null;
         }
     }
 }

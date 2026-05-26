@@ -1,11 +1,9 @@
-using ErgStream.Services;
-
 namespace ErgStream.Platforms.Windows;
 
 public class BeepService : IBeepService
 {
     /// <summary>
-    /// Plays a 1000 Hz beep for the specified duration using Console.Beep.
+    /// Plays a beep for the specified duration using Console.Beep.
     /// The call is offloaded to a thread pool thread so it does not block the UI.
     /// </summary>
     public void Beep(BeepType type)

@@ -112,8 +112,6 @@
                    FontSize="28"
                    FontAttributes="Bold"
                    HorizontalTextAlignment="Center" />
-            <Label Text="{Binding ErgId}"
-                   Style="{StaticResource Pm5SmallLabel}" />
         </VerticalStackLayout>
 
         <!-- ===== PM5 DISPLAY (ProgramNotStarted / Running / Completed / Canceled) ===== -->
