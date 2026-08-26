@@ -64,6 +64,7 @@ namespace ErgStream.ViewModels
         private ErgDataStreamRow? currentStatus;
         private StringBuilder reportStringBuilder = new();
 
+        private DateTime? ergProgramStartTime;
         private DateTime? recordingStartTime;
 
         [ObservableProperty]
@@ -135,9 +136,12 @@ namespace ErgStream.ViewModels
             ergProgramCancellationTokenSource = new CancellationTokenSource();
             CancellationToken token = ergProgramCancellationTokenSource.Token;
             PeriodicTimer ergProgramTickTimer = new PeriodicTimer(TimeSpan.FromSeconds(1.0 / 30.0));
+            ergProgramStartTime = DateTime.UtcNow;
             reportStringBuilder.Clear();
             allProgramPowers.Clear();
             UpdateState(ErgProgramState.Running);
+
+            WriteReportHeader();
 
             try
             {
@@ -282,6 +286,15 @@ namespace ErgStream.ViewModels
             await Clipboard.SetTextAsync(reportStringBuilder.ToString());
         }
 
+        private void WriteReportHeader()
+        {
+            reportStringBuilder.AppendLine($"Erg Program Report");
+            reportStringBuilder.AppendLine($"Start Time: {(ergProgramStartTime.HasValue ? ergProgramStartTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "null")}");
+            reportStringBuilder.AppendLine();
+            reportStringBuilder.AppendLine("Interval\tElapsed Time\tPower");
+        }
+
+
         private void StartPowerRecording()
         {
             recordingStartTime = DateTime.UtcNow;
@@ -293,21 +306,29 @@ namespace ErgStream.ViewModels
 
             List<double> powers = new();
 
-            reportStringBuilder.AppendLine($"Interval: {intervalTitle}");
-            reportStringBuilder.AppendLine($"   StartTime: {(recordingStartTime.HasValue ? recordingStartTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "null")}");
-            reportStringBuilder.AppendLine($"   EndTime: {recordingEndTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")}");
-            reportStringBuilder.AppendLine($"   Stroke Powers:");
+            //reportStringBuilder.AppendLine($"Interval: {intervalTitle}");
+            //reportStringBuilder.AppendLine($"   StartTime: {(recordingStartTime.HasValue ? recordingStartTime.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") : "null")}");
+            //reportStringBuilder.AppendLine($"   EndTime: {recordingEndTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")}");
+            //reportStringBuilder.AppendLine($"   Stroke Powers:");
+
             foreach (ErgDataStreamRow stroke in ergRecorder.StrokeMessages.Values)
             {
                 if (stroke.IsStrokeData && stroke.TimeStamp >= recordingStartTime && stroke.TimeStamp <= recordingEndTime && stroke.Power.HasValue)
                 {
+                    double elapsedSeconds = -1.0;
+                    if (ergProgramStartTime.HasValue)
+                    {
+                        elapsedSeconds = (stroke.TimeStamp - ergProgramStartTime.Value).TotalSeconds;
+                    }
+
                     powers.Add(stroke.Power.Value);
                     allProgramPowers.Add(stroke.Power.Value);
-                    reportStringBuilder.AppendLine($"      Time: {stroke.TimeStamp.ToLocalTime():yyyy-MM-dd HH:mm:ss.fff}   Power: {stroke.Power.Value:F2}");
+                    reportStringBuilder.AppendLine($"{intervalTitle}\t{elapsedSeconds:F2}\t{stroke.Power.Value:F2}");
                 }
             }
-            reportStringBuilder.AppendLine($"   Mean Power: {(powers.Count > 0 ? powers.Average().ToString("F2") : "N/A")}");
-            reportStringBuilder.AppendLine();
+
+            //reportStringBuilder.AppendLine($"   Mean Power: {(powers.Count > 0 ? powers.Average().ToString("F2") : "N/A")}");
+            //reportStringBuilder.AppendLine();
 
             recordingStartTime = null;
         }

@@ -16,7 +16,6 @@ namespace ErgStream.Pages
         {
             InitializeComponent();
             
-            //_ergCommService = new ErgCommService();
             _ergCommService = ergComService;
             this.ergRecorder = ergRecorder;
             Items = new ObservableCollection<ErgInfo>();
